@@ -5,9 +5,14 @@ from tkinter import Entry, Label, Button, filedialog, StringVar
 from tkinter.scrolledtext import ScrolledText
 import tkinter.messagebox
 from tkinter import END
-import os
+import os, time
 from QQMailSender import sender
 from QGMspider import crawlQQNum
+from threading import Thread
+
+N = 10  # 一次给10个人发送邮件
+
+DEBUG = True
 
 
 class MyGUI():
@@ -26,7 +31,6 @@ class MyGUI():
         self.mailImage = None
         self.mailContent = ''
         self.mails = []
-        self.filePath = ''
 
     # 初始化窗口
     def set_init_window(self):
@@ -138,8 +142,8 @@ class MyGUI():
                 self.SAVEBTN.configure(state='normal')
                 self.SENDBTN.configure(state='normal')
                 self.MAILCON.configure(state='normal')
-                # self.MAILFILEBTN.configure(state='normal')
-                # self.MAILIMGS.configure(state='normal')
+                self.MAILFILEBTN.configure(state='normal')
+                self.MAILIMG.configure(state='normal')
                 self.MYMAIL.configure(state='normal')
                 self.MAILAUTHCODE.configure(state='normal')
                 self.MAILSUBJ.configure(state='normal')
@@ -165,15 +169,29 @@ class MyGUI():
     def _getMailFile(self):
         f = filedialog.askopenfilename()
         if f:
-            self.filePath = f
-            self.FILEPATH.configure(text=self.filePath)
+            self.mailFile = f
+            self.FILEPATH.configure(text=self.mailFile)
 
     def _getMailImg(self):
         img = filedialog.askopenfilename()
         ext = os.path.splitext(img)[-1]
-        if img and ext in ['.png', '.jpg', '.jpeg', 'bmp']:
-            self.mailImages = img
-            self.MAILIMG.configure(text=self.filePath)
+        if img and ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif']:
+            self.mailImage = img
+            self.MAILIMG.configure(text=self.mailImage)
+
+    def _threadSender(self, email, auth, subject, content, imgPath, filePath):
+        users = self.mails[:N]
+        num = 0
+        while users:
+            num += sender(email, auth, subject, users, content, self.TIP2, num,
+                          imgPath, filePath)
+            time.sleep(10)
+            users = self.mails[num:num + N]
+            if not num:
+                msg = "发送失败, 请换QQ或者稍后再试"
+                self.TIP2.configure(text=msg)
+                return
+        self.TIP2.configure(text=f"发送完成, 邮件成功发送给{num}个人")
 
     # # 开始发送邮件
 
@@ -181,12 +199,24 @@ class MyGUI():
         # self.test_mock()
         # attach_path = self.attach_dir['text']
         # bookFile = self.book_dir['text']
+        # if DEBUG:
+        #     sendThread = Thread(
+        #         target=self._threadSender,
+        #         args=(self.mymail, self.mailAuth, 'hello world',
+        #               'hello content',
+        #               r'D:\Projects\pycode\QQGroupMail\test.png',
+        #               r'D:\Projects\pycode\QQGroupMail\mails.txt'))
+        #     sendThread.start()
+        #     return
         email = self.MYMAIL.get()
         auth = self.MAILAUTHCODE.get()
         subject = self.MAILSUBJ.get()
         content = self.MAILCON.get(0.0, END)
         if email and auth and subject and content:
-            msg = sender(email, auth, subject, self.mails, content)
+            sendThread = Thread(target=self._threadSender,
+                                args=(email, auth, subject, content,
+                                      self.mailImage, self.mailFile))
+            sendThread.start()
         else:
             msg = '请完整填写邮箱, 授权码, 邮件主题和正文'
         self.TIP2.configure(text=msg)
@@ -202,10 +232,14 @@ class MyGUI():
         self.TIP2.configure(text='保存完成')
         os.startfile(os.path.abspath('.'))
 
-    # def test_mock(self):
-    #     self.mymail = '767710688@qq.com'
-    #     self.mailAuth = 'ojosjwekknupbbha'
-    #     self.mails = ['2855829886@qq.com']
+    def test_mock(self):
+        # self.mymail = '767710688@qq.com'
+        # self.mailAuth = 'ojosjwekknupbbha'
+        # self.mails = ['2855829886@qq.com']
+
+        self.mymail = '2855829886@qq.com'
+        self.mailAuth = 'diplnzgchsmrdgbb'
+        self.mails = ['767710688@qq.com']
 
 
 def gui_start():

@@ -36,40 +36,51 @@ def _withFile(filePath, msg):
     return msg
 
 
-def sender(email,
-         auth,
-         subject,
-         receivers,
-         content,
-         imgPath=None,
-         filePath=None):
-    server = _authLogin(email, auth)
-    if not server:
-        return '登陆失败, 请检查邮箱和授权码'
+def _compContent(email, subject, receivers, content, imgPath, filePath):
     message = MIMEMultipart('related')
     message['Subject'] = subject
     message['From'] = email
     message['To'] = ','.join(receivers)
-    content = MIMEText(f'<html><body>{content}</body></html>', 'html', 'utf-8')
-    # content = MIMEText(
-    #     '<html><body><img src="cid:imageid" alt="imageid"></body></html>', 'html', 'utf-8')
+    # content = MIMEText(f'<html><body>{content}</body></html>', 'html', 'utf-8')
+    content = MIMEText(
+        f'<html><body><div>{content}</div><img src="cid:imageid" alt="imageid"></body></html>',
+        'html', 'utf-8')
     message.attach(content)
 
     if imgPath:
         message = _withImg(imgPath, message)
     if filePath:
         message = _withFile(filePath, message)
+    return message
+
+
+def sender(email,
+           auth,
+           subject,
+           receivers,
+           content,
+           TIP2,
+           num,
+           imgPath=None,
+           filePath=None):
+
+    server = _authLogin(email, auth)
+    if not server:
+        return '登陆失败, 请检查邮箱和授权码'
+
+    msg = _compContent(email, subject, receivers, content, imgPath, filePath)
 
     # 发送邮件
     try:
-        server.sendmail(email, receivers, message.as_string())
+        server.sendmail(email, receivers, msg.as_string())
         server.quit()
-        return "邮件成功发送给%d个人" % len(receivers)
+        TIP2.configure(text=f"邮件成功发送给{num}个人")
+        return len(receivers)
     except smtplib.SMTPException as e:
-        print(e)
-        return "发送失败, 请切换QQ或稍后再试"
+        return
 
 
 if __name__ == '__main__':
-    sender('767710688@qq.com', 'ojosjwekknupbbha', 'test mail',
-         ['2855829886@qq.com'], 'hello world\naaaaa\nwori')
+    # sender('767710688@qq.com', 'ojosjwekknupbbha', 'test mail',
+    #        ['2855829886@qq.com'], 'hello world\naaaaa\nwori')
+    pass
