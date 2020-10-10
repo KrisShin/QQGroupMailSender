@@ -1,15 +1,12 @@
 # -*- coding:utf-8 -*-
 
-# ==================BatchMailSender V1.3 ===========================
-
 import tkinter
 from tkinter import Entry, Label, Button, filedialog, StringVar
 from tkinter.scrolledtext import ScrolledText
 import tkinter.messagebox
 from tkinter import END
-# import time
 import os
-from QQMailSender import send
+from QQMailSender import sender
 from QGMspider import crawlQQNum
 
 
@@ -100,8 +97,8 @@ class MyGUI():
         Label(self.mainWindow, text="选择邮件图片:", padx=10).grid(column=0,
                                                              row=9,
                                                              sticky='e')
-        self.MAILIMGS = Label(self.mainWindow, text='')
-        self.MAILIMGS.grid(column=1, row=9)
+        self.MAILIMG = Label(self.mainWindow, text='')
+        self.MAILIMG.grid(column=1, row=9)
         self.MAILIMGBTN = Button(self.mainWindow,
                                  text='点击选择',
                                  state='disabled',
@@ -166,14 +163,17 @@ class MyGUI():
             self.GETMAILSBTN.configure(state='disabled')
 
     def _getMailFile(self):
-        self.filePath = filedialog.askopenfilename()
-        self.mailFile.configure(text=self.filePath)
+        f = filedialog.askopenfilename()
+        if f:
+            self.filePath = f
+            self.FILEPATH.configure(text=self.filePath)
 
     def _getMailImg(self):
         img = filedialog.askopenfilename()
-        if img:
+        ext = os.path.splitext(img)[-1]
+        if img and ext in ['.png', '.jpg', '.jpeg', 'bmp']:
             self.mailImages = img
-            self.mailFile.configure(text=self.filePath)
+            self.MAILIMG.configure(text=self.filePath)
 
     # # 开始发送邮件
 
@@ -186,7 +186,7 @@ class MyGUI():
         subject = self.MAILSUBJ.get()
         content = self.MAILCON.get(0.0, END)
         if email and auth and subject and content:
-            msg = send(email, auth, subject, self.mails, content)
+            msg = sender(email, auth, subject, self.mails, content)
         else:
             msg = '请完整填写邮箱, 授权码, 邮件主题和正文'
         self.TIP2.configure(text=msg)
@@ -202,17 +202,16 @@ class MyGUI():
         self.TIP2.configure(text='保存完成')
         os.startfile(os.path.abspath('.'))
 
-    def test_mock(self):
-        self.mymail = '767710688@qq.com'
-        self.mailAuth = 'ojosjwekknupbbha'
-        # self.mails = ['2855829886@qq.com']
+    # def test_mock(self):
+    #     self.mymail = '767710688@qq.com'
+    #     self.mailAuth = 'ojosjwekknupbbha'
+    #     self.mails = ['2855829886@qq.com']
 
 
 def gui_start():
     init_window = tkinter.Tk()
     main_gui = MyGUI(init_window)
     main_gui.set_init_window()
-    main_gui.test_mock()
     init_window.mainloop()
 
 
