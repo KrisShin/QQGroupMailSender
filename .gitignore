@@ -1,3 +1,5 @@
 **/.vscode/*
 mails.txt
 __pycache__
+**/build/
+*.spec

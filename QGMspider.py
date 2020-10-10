@@ -4,9 +4,9 @@ import os
 import re
 
 
-def parseMails(driver):
-    html = driver.page_source        # 获取源码
-    driver.quit()                   # 关闭浏览器
+def _parseMails(driver):
+    html = driver.page_source  # 获取源码
+    driver.quit()  # 关闭浏览器
     reg = re.compile(r'<td>\s*?([1-9]\d{4,11})\s*?</td>')
     res = re.findall(reg, html)
     mails = []
@@ -15,7 +15,7 @@ def parseMails(driver):
     return mails
 
 
-def scroll_foot(driver):
+def _scroll_foot(driver):
     '''
     下拉界面
     '''
@@ -34,11 +34,10 @@ def crawlQQNum(group_id, driverPath):
     max_n = 0
     while max_n < len(driver.page_source):
         max_n = len(driver.page_source)
-        scroll_foot(driver)
+        _scroll_foot(driver)
         time.sleep(1)  # 每2.5秒下拉一次刷新名单，直至刷新不到新名单位置
 
-    mails = parseMails(driver)  # 保存本地数据
-    print(len(mails))
+    mails = _parseMails(driver)  # 保存本地数据
     return mails
 
 

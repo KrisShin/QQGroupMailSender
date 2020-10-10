@@ -3,31 +3,47 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
-def send():
-    sender = '***@qq.com'
-    receivers = '***@qq.com'
-    message =  MIMEMultipart('related')
-    subject = '终于能发图片了'
+
+def _authLogin(email, auth):
+    server = smtplib.SMTP_SSL("smtp.qq.com", 465)
+    try:
+        server.login(email, auth)
+        return server
+    except:
+        return
+
+
+def send(email, auth, subject, receivers, content, attaches=None):
+    server = _authLogin(email, auth)
+    if not server:
+        return '登陆失败, 请检查邮箱和授权码'
+    message = MIMEMultipart('related')
     message['Subject'] = subject
-    message['From'] = sender
-    message['To'] = receivers
-    content = MIMEText('<html><body><img src="cid:imageid" alt="imageid"></body></html>','html','utf-8')
+    message['From'] = email
+    message['To'] = ','.join(receivers)
+    content = MIMEText(f'<html><body>{content}</body></html>', 'html', 'utf-8')
+    # content = MIMEText(
+    #     '<html><body><img src="cid:imageid" alt="imageid"></body></html>', 'html', 'utf-8')
     message.attach(content)
 
-    file=open("test.png", "rb")
-    img_data = file.read()
-    file.close()
+    # 添加图片
+    # file = open("test.png", "rb")
+    # img_data = file.read()
+    # file.close()
 
-    img = MIMEImage(img_data)
-    img.add_header('Content-ID', 'imageid')
-    message.attach(img)
+    # img = MIMEImage(img_data)
+    # img.add_header('Content-ID', 'imageid')
+    # message.attach(img)
 
     try:
-        server=smtplib.SMTP_SSL("smtp.qq.com",465)
-        server.login(sender,"填写qq邮箱的授权码")
-        server.sendmail(sender,receivers,message.as_string())
+        server.sendmail(email, receivers, message.as_string())
         server.quit()
-        print ("邮件发送成功")
+        return "邮件成功发送给%d个人" % len(receivers)
     except smtplib.SMTPException as e:
         print(e)
-send()
+        return "发送失败, 请切换QQ或稍后再试"
+
+
+if __name__ == '__main__':
+    send('767710688@qq.com', 'ojosjwekknupbbha', 'test mail',
+         ['2855829886@qq.com'], 'hello world\naaaaa\nwori')
