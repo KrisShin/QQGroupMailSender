@@ -36,22 +36,31 @@ def crawlQQNum(driverPath):
     driver.get(url=url)
     time.sleep(12)  # 等待扫码登录成功
     group_ids = _parse_group(driver)
-    for gid in group_ids:
+    for i, gid in enumerate(group_ids):
+        if i and (not i%3):
+            try:
+                driver.quit()
+                time.sleep(5)
+                driver = webdriver.Chrome(executable_path=driverPath)  # 手动输入插件路径
+            except:
+                return 0
         gurl = f'https://qun.qq.com/member.html#gid={gid}'
         try:
             driver.get(url=gurl)
+            if i and (not i%3):
+                time.sleep(12)
             driver.refresh()
         except Exception as e:
             print(e)
             return
-        time.sleep(8)
+        time.sleep(3)
         max_n = 0
         while max_n < len(driver.page_source):
             max_n = len(driver.page_source)
             _scroll_foot(driver)
-            time.sleep(1)  # 每2.5秒下拉一次刷新名单，直至刷新不到新名单位置
+            time.sleep(0.5)  # 每2.5秒下拉一次刷新名单，直至刷新不到新名单位置
         mails = _parseMails(driver)  # 保存本地数据
-        time.sleep(2)
+        time.sleep(10)
         if not os.path.exists('groups'):
             os.mkdir('groups')
         with open(f'groups/{gid}.txt', 'w') as fs:

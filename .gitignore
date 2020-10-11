@@ -3,3 +3,4 @@ mails.txt
 __pycache__
 **/build/
 *.spec
+groups/*
