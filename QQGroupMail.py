@@ -5,12 +5,13 @@ from tkinter import Entry, Label, Button, filedialog, StringVar
 from tkinter.scrolledtext import ScrolledText
 import tkinter.messagebox
 from tkinter import END
-import os, time
+import os
 from QQMailSender import sender
-from QGMspider import crawlQQNum
+from QGMSpider import crawlQQNum
 from threading import Thread
 
 N = 10  # 一次给10个人发送邮件
+
 
 DEBUG = True
 
@@ -185,7 +186,6 @@ class MyGUI():
         while users:
             num += sender(email, auth, subject, users, content, self.TIP2, num,
                           imgPath, filePath)
-            time.sleep(10)
             users = self.mails[num:num + N]
             if not num:
                 msg = "发送失败, 请换QQ或者稍后再试"

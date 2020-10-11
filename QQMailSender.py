@@ -2,7 +2,9 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
-import os
+import os, time
+
+SLEEPTIME = 4  # 实际等待时间4~0 是5秒
 
 
 def _authLogin(email, auth):
@@ -74,9 +76,12 @@ def sender(email,
     try:
         server.sendmail(email, receivers, msg.as_string())
         server.quit()
-        TIP2.configure(text=f"邮件成功发送给{num}个人")
+        for i in range(SLEEPTIME, -1, -1):
+            TIP2.configure(text=f"邮件成功发送给{num}个人, {i}秒后刷新")
+            time.sleep(1)
         return len(receivers)
     except smtplib.SMTPException as e:
+        print(e)
         return
 
 
