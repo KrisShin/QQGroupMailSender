@@ -70,5 +70,6 @@ def crawlQQNum(driverPath):
 
 
 if __name__ == '__main__':
-    path = 'D:\Projects\pycode\QQGroupMail\chromedriver.exe'
+    # path = '.\chromedriver.exe'
+    path = './chromedriver'
     crawlQQNum(path)
