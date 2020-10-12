@@ -70,6 +70,6 @@ def crawlQQNum(driverPath):
 
 
 if __name__ == '__main__':
-    # path = '.\chromedriver.exe'
-    path = './chromedriver'
+    path = '.\chromedriver.exe'
+    # path = './chromedriver'
     crawlQQNum(path)

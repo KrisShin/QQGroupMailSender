@@ -29,6 +29,12 @@ def _withImg(imgPath, msg):
 
 
 def _withFile(filePath, msg):
+    '''
+    @func: 邮件添加附件
+    @params: filePath - 附件路径
+             msg      - 邮件信息流对象
+    @return: msg      - 邮件信息流对象
+    '''
     att = MIMEText(open(filePath, 'rb').read(), 'base64', 'gb2312')
     att["Content-Type"] = 'application/octet-stream'
     att.add_header('Content-Disposition',
@@ -65,7 +71,6 @@ def sender(email,
            num,
            imgPath=None,
            filePath=None):
-
     server = _authLogin(email, auth)
     if not server:
         return '登陆失败, 请检查邮箱和授权码'
