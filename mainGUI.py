@@ -6,8 +6,8 @@ from tkinter.scrolledtext import ScrolledText
 import tkinter.messagebox
 from tkinter import END
 import os
-from QQMailSender import sender
-from QGMSpider import crawlQQNum
+from mailSender import sender
+from spider import crawlQQNum
 from threading import Thread
 
 N = 10  # 一次给10个人发送邮件
