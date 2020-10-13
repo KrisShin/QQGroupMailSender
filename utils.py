@@ -1,5 +1,8 @@
 import logging
+from time import sleep
+from random import randint
 from tkinter import messagebox
+import json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -21,9 +24,11 @@ QQ邮箱放入qq.txt内容为:
 
 
 def save_txt(data, filePath, mode='w'):
+    if not isinstance(data, str):
+        data = json.dumps(data)
     with open(filePath, mode) as fs:
         fs.write(data)
-    return 200
+    return True
 
 
 def dialogMsg(msg='', m='info'):
@@ -44,6 +49,11 @@ def logT(msg, m='info'):
         logger.error(msg)
     else:
         logger.info(msg)
+
+
+def randSleep(start, end):
+    '''random sleep start seconds to end seconds'''
+    sleep(randint(int(start*10), int(end*10))/10)
 
 
 if __name__ == "__main__":

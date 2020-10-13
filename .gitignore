@@ -4,4 +4,5 @@ __pycache__
 **/build/
 *.spec
 groups/*
-**log.txt
+log.txt
+groupsNumber.txt
