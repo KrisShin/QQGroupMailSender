@@ -2,6 +2,7 @@ from selenium import webdriver
 import time
 import os
 import re
+from utils import save_txt, logger
 
 
 def _parseMails(driver):
@@ -27,46 +28,36 @@ def _scroll_foot(driver):
     js = "var q=document.documentElement.scrollTop=100000"
     return driver.execute_script(js)
 
-def save_txt(data, filePath, mode='w'):
-    with open(filePath, mode) as fs:
-        fs.write(data)
-    return 200
-
 
 def crawlQQNum(driverPath):
     url = f'https://qun.qq.com/member.html'
     try:
         driver = webdriver.Chrome(executable_path=driverPath)  # 手动输入插件路径
     except:
+        logger.error([1, 2, 3], {'a': 123, 'v': 'c'}, 'hahah')
         return 0
     driver.get(url=url)
     time.sleep(12)  # 等待扫码登录成功
     group_ids = _parse_group(driver)
     for i, gid in enumerate(group_ids):
-        if i and (not i%3):
-            try:
-                driver.quit()
-                time.sleep(5)
-                driver = webdriver.Chrome(executable_path=driverPath)  # 手动输入插件路径
-            except:
-                return 0
+        try:
+            driver.quit()
+            driver = webdriver.Chrome(
+                executable_path=driverPath)  # 手动输入插件路径
+        except:
+            return 0
         gurl = f'https://qun.qq.com/member.html#gid={gid}'
         try:
             driver.get(url=gurl)
-            if i and (not i%3):
-                time.sleep(12)
             driver.refresh()
         except Exception as e:
             print(e)
             return
-        time.sleep(3)
         max_n = 0
         while max_n < len(driver.page_source):
             max_n = len(driver.page_source)
             _scroll_foot(driver)
-            time.sleep(0.5)  # 每2.5秒下拉一次刷新名单，直至刷新不到新名单位置
         mails = _parseMails(driver)  # 保存本地数据
-        time.sleep(10)
         if not os.path.exists('groups'):
             os.mkdir('groups')
         with open(f'groups/{gid}.txt', 'w') as fs:
@@ -76,6 +67,6 @@ def crawlQQNum(driverPath):
 
 
 if __name__ == '__main__':
-    path = '.\chromedriver.exe'
-    # path = './chromedriver'
+    import platform
+    path = '.\chromedriver.exe' if platform.system() == 'Windows' else './chromedriver'
     crawlQQNum(path)
