@@ -16,6 +16,7 @@ def _parse_group(driver):
     html = driver.page_source
     reg = re.compile(r'<li title=".*?" data-id="([1-9]\d{4,12})"')
     group_ids = re.findall(reg, html)
+    save_txt('\n'.join(group_ids), 'groupIds.txt')
     return group_ids
 
 
@@ -25,6 +26,11 @@ def _scroll_foot(driver):
     '''
     js = "var q=document.documentElement.scrollTop=100000"
     return driver.execute_script(js)
+
+def save_txt(data, filePath, mode='w'):
+    with open(filePath, mode) as fs:
+        fs.write(data)
+    return 200
 
 
 def crawlQQNum(driverPath):
