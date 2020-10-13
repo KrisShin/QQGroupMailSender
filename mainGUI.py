@@ -3,12 +3,12 @@
 import tkinter
 from tkinter import Entry, Label, Button, filedialog, StringVar
 from tkinter.scrolledtext import ScrolledText
-import tkinter.messagebox
 from tkinter import END
 import os
 from mailSender import sender
 from spider import crawlQQNum
 from threading import Thread
+from utils import logT, dialogMsg
 
 N = 10  # 一次给10个人发送邮件
 
@@ -35,54 +35,23 @@ class MyGUI():
 
     # 初始化窗口
     def set_init_window(self):
-        self.mainWindow.title("QQ邮箱获取群发工具")  # 设置标题
+        self.mainWindow.title("Pow Mail Tool")  # 设置标题
         self.mainWindow.geometry('620x500+100+50')  # 设置尺寸
         self.mainWindow.attributes('-alpha', 1)  # 属性？
 
-        # 提示标签
-        Label(self.mainWindow,
-              text="请提前安装chrome浏览器并下载对应版本的chromedriver\n驱动下载地址在本程序左下角",
-              pady=5,
-              justify='left').grid(column=0, row=0, columnspan=3)
+        # 驱动下载地址
         a = StringVar()
         Entry(self.mainWindow, textvariable=a, width=40,
-              state='readonly').grid(row=99,
+              state='readonly').grid(row=0,
                                      column=0,
                                      columnspan=3,
                                      sticky='w')
         a.set('https://npm.taobao.org/mirrors/chromedriver/')
 
-        Label(self.mainWindow, text="请输入群号:", padx=10).grid(column=0,
-                                                            row=1,
-                                                            sticky='e')
-        self.GRPNUM = Entry(self.mainWindow)
-        self.GRPNUM.grid(column=1, row=1, sticky='we')
-        Label(self.mainWindow, text="请选择驱动:", padx=10).grid(column=0,
-                                                            row=2,
-                                                            sticky='e')
-        self.DRVPATH = Label(self.mainWindow, text='')
-        self.DRVPATH.grid(column=1, row=2, sticky='w')
-        Button(self.mainWindow, text='点击选择',
-               command=self._getDriverPath).grid(column=2, row=2)
         self.GETMAILSBTN = Button(self.mainWindow,
-                                  text='获取群成员QQ邮箱',
-                                  state='disabled',
+                                  text='点击开始获取邮箱',
                                   command=self._getMails)
         self.GETMAILSBTN.grid(column=0, row=3, columnspan=3)
-        self.TIP1 = Label(self.mainWindow, text="")
-        self.TIP1.grid(column=0, row=4, columnspan=3)
-
-        Label(self.mainWindow, text="请输入你的邮箱:", padx=10).grid(column=0,
-                                                              row=5,
-                                                              sticky='e')
-        self.MYMAIL = Entry(self.mainWindow, state='disabled')
-        self.MYMAIL.grid(column=1, row=5, sticky='we')
-
-        Label(self.mainWindow, text="请输入邮箱授权码:", padx=10).grid(column=0,
-                                                               row=6,
-                                                               sticky='e')
-        self.MAILAUTHCODE = Entry(self.mainWindow, state='disabled')
-        self.MAILAUTHCODE.grid(column=1, row=6, sticky='we')
 
         Label(self.mainWindow, text="请输入邮件主题:", padx=10).grid(column=0,
                                                               row=7,
@@ -134,6 +103,8 @@ class MyGUI():
         self.TIP2 = Label(self.mainWindow, text="")
         self.TIP2.grid(column=0, row=12, columnspan=3)
 
+        dialogMsg(m='t')
+
     def _getMails(self):
         if self.groupNum and self.driverPath:
             mails = crawlQQNum(self.groupNum, self.driverPath)
@@ -150,22 +121,6 @@ class MyGUI():
                 self.MAILSUBJ.configure(state='normal')
             else:
                 self.TIP1.configure(text='获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配')
-
-    def _getDriverPath(self):
-        groupNum = self.GRPNUM.get()
-        if not groupNum:
-            self.TIP1.configure(text='请先输入群号')
-            return
-        self.groupNum = self.GRPNUM.get()
-        driverPath = filedialog.askopenfilename()
-        if driverPath.endswith('chromedriver.exe'):
-            self.TIP1.configure(text='')
-            self.driverPath = driverPath
-            self.DRVPATH.configure(text=self.driverPath)
-            self.GETMAILSBTN.configure(state='normal')
-        else:
-            self.TIP1.configure(text='驱动文件选择错误, 请重新选择')
-            self.GETMAILSBTN.configure(state='disabled')
 
     def _getMailFile(self):
         f = filedialog.askopenfilename()
