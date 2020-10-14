@@ -6,7 +6,7 @@ import json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
-handler = logging.FileHandler("log.txt")
+handler = logging.FileHandler("log.txt", encoding='utf-8')
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
