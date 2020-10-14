@@ -20,6 +20,9 @@ TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver
 QQ邮箱放入qq.txt内容为:
 12345678@qq.com&yourqqmailauthcode
 12345678@qq.com&yourqqmailauthcode
+163邮箱放入163.txt内容为:
+12345678@163.com&yourqqmailauthcode
+12345678@163.com&yourqqmailauthcode
 '''
 
 
