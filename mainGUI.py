@@ -36,14 +36,14 @@ class MyGUI():
     # 初始化窗口
     def set_init_window(self):
         self.mainWindow.title("Pow Mail Tool")  # 设置标题
-        self.mainWindow.geometry('620x500+100+50')  # 设置尺寸
+        self.mainWindow.geometry('620x310+100+50')  # 设置尺寸
         self.mainWindow.attributes('-alpha', 1)  # 属性？
 
         # 驱动下载地址
-        Label(self.mainWindow, text="下载地址: ").grid(
+        Label(self.mainWindow, text="驱动下载地址: ").grid(
             column=0, row=0, sticky='e')
         a = StringVar()
-        Entry(self.mainWindow, textvariable=a, width=40,
+        Entry(self.mainWindow, textvariable=a, width=50,
               state='readonly').grid(row=0, column=1, columnspan=2, sticky='w')
         a.set('https://npm.taobao.org/mirrors/chromedriver/')
 
@@ -58,10 +58,15 @@ class MyGUI():
         self.READGIDSBTN.grid(column=1, row=1)
 
         self.STARTCRAWLBTN = Button(self.mainWindow,
+                                    text='读取邮箱',
+                                    command=self.readMails)
+        self.STARTCRAWLBTN.grid(column=2, row=1)
+
+        self.STARTCRAWLBTN = Button(self.mainWindow,
                                     text='开始爬取',
                                     state='disabled',
                                     command=self.getMails)
-        self.STARTCRAWLBTN.grid(column=2, row=1, sticky='w')
+        self.STARTCRAWLBTN.grid(column=3, row=1)
 
         Label(self.mainWindow, text="请输入邮件主题:", padx=10).grid(column=0,
                                                               row=2,
@@ -76,7 +81,7 @@ class MyGUI():
                                     width=65,
                                     height=10,
                                     state='disabled')
-        self.MAILCON.grid(column=1, row=3, columnspan=2)
+        self.MAILCON.grid(column=1, row=3, columnspan=3)
 
         Label(self.mainWindow, text="选择邮件图片:", padx=10).grid(column=0,
                                                              row=4,
@@ -85,15 +90,15 @@ class MyGUI():
         self.MAILIMG.grid(column=1, row=4)
         self.MAILIMGBTN = Button(self.mainWindow,
                                  text='点击选择',
-                                 #  state='disabled',
+                                 state='disabled',
                                  command=self.getMailImg)
-        self.MAILIMGBTN.grid(column=2, sticky='w', row=4)
+        self.MAILIMGBTN.grid(column=2, row=4)
 
         self.MAILCLEANIMGBTN = Button(self.mainWindow,
                                       text='清空图片',
-                                      #  state='disabled',
+                                      state='disabled',
                                       command=self._cleanMailImg)
-        self.MAILCLEANIMGBTN.grid(column=2, sticky='e', row=4)
+        self.MAILCLEANIMGBTN.grid(column=3, row=4)
 
         Label(self.mainWindow, text="选择邮件附件:", padx=10).grid(column=0,
                                                              row=5,
@@ -104,14 +109,18 @@ class MyGUI():
                                   text='点击选择',
                                   state='disabled',
                                   command=self.getMailFile)
-        self.MAILFILEBTN.grid(column=2, row=5, sticky='w')
+        self.MAILFILEBTN.grid(column=2, row=5)
 
         self.SENDBTN = Button(self.mainWindow,
                               text='群发邮件',
                               state='disabled',
                               command=self.sendMails)
-        self.SENDBTN.grid(column=1, row=6)
-        dialogMsg(m='t')
+        self.SENDBTN.grid(column=1, row=6, columnspan=2)
+
+        self.TIP = Label(text='')
+        self.TIP.grid(column=0, row=7, columnspan=4)
+        # dialogMsg(m='t')
+        logT('启动程序')
 
     def getGids(self):
         '''扫码获取所有群号'''
@@ -136,31 +145,55 @@ class MyGUI():
         except FileNotFoundError:
             dialogMsg('当前文件夹没有groupsNumber.txt文件', 'err')
 
+    def readMails(self):
+        try:
+            gidFiles = os.listdir('groups')
+            mails = {}
+            if gidFiles:
+                for gid in gidFiles:
+                    with open(f'groups/{gid}', 'r') as fg:
+                        mails[gid] = json.loads(fg.read())
+                self._setMails(mails)
+                dialogMsg('读取邮箱完成')
+                logT(f'读取邮箱完成， 群号：{gidFiles}')
+                return
+            msg = ('没有群邮箱文件在groups文件夹内', 'err')
+            logT(msg)
+            dialogMsg(msg)
+        except FileNotFoundError:
+            msg = ('没有groups文件夹', 'err')
+            logT(msg)
+            dialogMsg(msg)
+
     def getMails(self):
         res = crawlQQNum(self.gids)
         if res:
-            self.mails = res
-            self.MAILSUBJ.configure(state='normal')
-            self.MAILCON.configure(state='normal')
-            self.MAILIMGBTN.configure(state='normal')
-            self.MAILFILEBTN.configure(state='normal')
-            self.SENDBTN.configure(state='normal')
+            self._setMails(res)
         else:
-            logT('获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
-            dialogMsg('获取邮箱失败\n请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
+            msg = ('获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
+            logT(*msg)
+            dialogMsg(*msg)
+
+    def _setMails(self, mails):
+        self.mails = mails
+        self.MAILSUBJ.configure(state='normal')
+        self.MAILCON.configure(state='normal')
+        self.MAILIMGBTN.configure(state='normal')
+        self.MAILFILEBTN.configure(state='normal')
+        self.SENDBTN.configure(state='normal')
 
     def getMailFile(self):
         f = filedialog.askopenfilename()
-        logT(f'添加附件成功 {f}')
         if f:
+            logT(f'添加附件成功 {f}')
             self.mailFile = f
             self.FILEPATH.configure(text=self.mailFile)
 
     def getMailImg(self):
         img = filedialog.askopenfilename()
-        logT(f'添加图片成功 {img}')
         ext = os.path.splitext(img)[-1]
         if img and ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif']:
+            logT(f'添加图片成功 {img}')
             self.mailImages.append(img)
             imgs = [os.path.split(img)[-1] for img in self.mailImages]
             self.MAILIMG.configure(text=','.join(imgs))
@@ -182,7 +215,7 @@ class MyGUI():
                     logT(*msg)
                     dialogMsg(*msg)
                     return False
-        except FileExistsError:
+        except FileNotFoundError:
             msg = ('获取发件账号失败, 当前目录下没有account.json', 'err')
             logT(*msg)
             dialogMsg(*msg)
@@ -193,14 +226,15 @@ class MyGUI():
             receivers = self.mails[group][:N]
             while receivers:
                 num = sender(email, auth, mailType, receivers, mail, count)
-                with self.countLock:
-                    count += num
-                receivers = self.mails[group][count:count + N]
-                if not num:
-                    msg = ("发送失败, 请换QQ或者稍后再试", 'err')
+                if num == count:
+                    msg = ("发送失败, 请检查账号或者稍后再试", 'err')
                     logT(*msg)
                     dialogMsg(*msg)
                     return
+                with self.countLock:
+                    count = num
+                self.TIP.configure(text=f'邮件成功发送给{count}个人, 5秒后刷新')
+                receivers = self.mails[group][count:count + N]
         msg = f"发送完成, 邮件成功发送给{count}个人"
         logT(msg)
         dialogMsg(msg)
@@ -219,6 +253,7 @@ class MyGUI():
             'attach': self.mailFile
         }
         if accounts and subject and content:
+            self.TIP.configure(text='开始发送邮件, 请等待或者查看日志')
             for mailType in accounts:
                 for acc in accounts[mailType]:
                     sendThread = Thread(target=self._threadSender,

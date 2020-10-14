@@ -60,6 +60,7 @@ def _compContent(email, receivers, mail):
     message['To'] = ','.join(receivers)
     text = mail['content']
     # content = MIMEText(f'<html><body>{content}</body></html>', 'html', 'utf-8')
+    imgContent = ''
     for i in range(len(mail['images'])):
         imgContent += f'<div><img src="cid:imageid" alt="imageid{i}"></div>'
     content = MIMEText(
@@ -85,12 +86,15 @@ def sender(email, auth, mailType, receivers, mail, num=0):
     try:
         server.sendmail(email, receivers, msg.as_string())
         server.quit()
-        logT(f"邮件成功发送给{num}个人, 3到7秒后刷新")
+        num += len(receivers)
+        logT(f"{email}邮件成功发送, 总计发送{num}人")
         randSleep(3, 7)
-        return len(receivers)
+        return num
     except smtplib.SMTPException as e:
         print(e)
-        return
+        logT(f'{email}发送邮件失败, 原因请查看日志'+e, 'err')
+        dialogMsg(f'{email}发送邮件失败, 原因请查看日志')
+        return -1
 
 
 if __name__ == '__main__':

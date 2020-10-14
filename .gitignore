@@ -4,6 +4,6 @@ __pycache__
 **/build/
 *.spec
 groups/*
-log.txt
+*.log
 groupsNumber.txt
 account.json

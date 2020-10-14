@@ -6,7 +6,7 @@ import json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
-handler = logging.FileHandler("log.txt", encoding='utf-8')
+handler = logging.FileHandler("QGM.log", encoding='utf-8')
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -16,13 +16,29 @@ logger.addHandler(handler)
 
 TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver并放入当前文件夹
 驱动下载地址在本程序左上角
-发送者的邮箱和授权码请以文本文件形式放入当前文件夹
-QQ邮箱放入qq.txt内容为:
-12345678@qq.com&yourqqmailauthcode
-12345678@qq.com&yourqqmailauthcode
-163邮箱放入163.txt内容为:
-12345678@163.com&yourqqmailauthcode
-12345678@163.com&yourqqmailauthcode
+发送者的邮箱和授权码请以json格式放入当前文件夹
+
+---account.json
+{
+    "qq": [
+        {
+            "email": "xxxxxxxx@qq.com",
+            "auth": "xxxxxxxxxxxx"
+        }
+    ],
+    "163": [
+        {
+            "email": "xxxxxxxx@163.com",
+            "auth": "xxxxxxxxxxxx"
+        }
+    ],
+    "126": [
+        {
+            "email": "xxxxxxxx@126.com",
+            "auth": "xxxxxxxxxxxx"
+        }
+    ],
+}
 '''
 
 
