@@ -6,3 +6,4 @@ __pycache__
 groups/*
 log.txt
 groupsNumber.txt
+account.json

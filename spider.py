@@ -36,25 +36,34 @@ def _scroll2foot(driver):
     while max_n < len(driver.page_source):
         max_n = len(driver.page_source)
         driver.execute_script(js)
-        randSleep(0.5, 2)
+        randSleep(0.3, 3)
     return 1
 
 
+def _launchChromeDriver():
+    try:
+        driver = webdriver.Chrome(executable_path=DRIVERPATH)
+        return driver
+    except:
+        logT('请确认驱动版本以及是否在本文件夹内', 'err')
+        return False
+
+
 def crawlQQNum(group_ids):
+    logT('开始获取所有QQ号')
+    driver = _launchChromeDriver()
+    if not driver:
+        return False
     count = randint(3, 5)
+    logT(f'本次将爬取{count}个群')
     mails = {}
     for gid in group_ids:
         if gid in os.listdir('groups'):
             continue
-        try:
-            driver = webdriver.Chrome(executable_path=DRIVERPATH)  # 手动输入插件路径
-        except:
-            return 0
         gurl = f'https://qun.qq.com/member.html#gid={gid}'
         driver.get(url=gurl)
         driver.refresh()
-        sleep(12)  # wating to scan
-
+        randSleep(10, 15)  # wating to scan
         _scroll2foot(driver)
         mails[gid] = _parseMails(driver)  # 保存本地数据
         if not os.path.exists('groups'):
@@ -64,26 +73,27 @@ def crawlQQNum(group_ids):
         logT(f'群号:{gid} 已爬取完成并保存')
         if not count:
             break
+        randSleep(5, 10)
+    logT('获取QQ号完成')
     driver.quit()  # 关闭浏览器
-    return
+    return mails
 
 
 def crawlGroupIds():
     logT('开始获取所有群号')
     url = f'https://qun.qq.com/member.html'
-    try:
-        driver = webdriver.Chrome(executable_path=DRIVERPATH)  # 手动输入插件路径
-    except:
-        logT('请确认驱动版本以及是否在本文件夹内', 'err')
-        return 0
+    driver = _launchChromeDriver()
+    if not driver:
+        return False
     driver.get(url=url)
     time.sleep(12)  # 等待扫码登录成功
     group_ids = _parse_group(driver)
     save_txt(group_ids, 'groupsNumber.txt')
     driver.quit()
-    
+    logT('获取群号完成')
     return group_ids
 
 
 if __name__ == '__main__':
-    crawlQQNum(['', ''])
+    # crawlQQNum(['', ''])
+    pass

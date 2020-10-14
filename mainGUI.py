@@ -5,11 +5,10 @@ from tkinter import Entry, Label, Button, filedialog, StringVar
 from tkinter.scrolledtext import ScrolledText
 from tkinter import END
 import os
-import json
 from mailSender import sender
 from spider import crawlQQNum, crawlGroupIds
-from threading import Thread
-from utils import logT, dialogMsg
+from threading import Thread, Lock
+from utils import logT, dialogMsg, json
 
 N = 10  # 一次给10个人发送邮件
 
@@ -31,6 +30,8 @@ class MyGUI():
         self.mailImages = []
         self.mailContent = ''
         self.mails = []
+        self.countLock = Lock()
+        self.count = 0
 
     # 初始化窗口
     def set_init_window(self):
@@ -48,83 +49,80 @@ class MyGUI():
 
         self.GETGIDSBTN = Button(self.mainWindow,
                                  text='获取群号',
-                                 command=self._getGids)
+                                 command=self.getGids)
         self.GETGIDSBTN.grid(column=0, row=1, sticky='e')
 
         self.READGIDSBTN = Button(self.mainWindow,
                                   text='读取群号',
-                                  command=self._readGids)
+                                  command=self.readGids)
         self.READGIDSBTN.grid(column=1, row=1)
 
         self.STARTCRAWLBTN = Button(self.mainWindow,
                                     text='开始爬取',
                                     state='disabled',
-                                    command=self._getMails)
+                                    command=self.getMails)
         self.STARTCRAWLBTN.grid(column=2, row=1, sticky='w')
 
         Label(self.mainWindow, text="请输入邮件主题:", padx=10).grid(column=0,
-                                                              row=7,
+                                                              row=2,
                                                               sticky='e')
         self.MAILSUBJ = Entry(self.mainWindow, state='disabled')
-        self.MAILSUBJ.grid(column=1, row=7, sticky='we')
+        self.MAILSUBJ.grid(column=1, row=2, sticky='we')
 
         Label(self.mainWindow, text="输入邮件内容:", padx=10).grid(column=0,
-                                                             row=8,
+                                                             row=3,
                                                              sticky='e')
         self.MAILCON = ScrolledText(self.mainWindow,
-                                    width=60,
+                                    width=65,
                                     height=10,
                                     state='disabled')
-        self.MAILCON.grid(column=1, row=8, columnspan=2)
+        self.MAILCON.grid(column=1, row=3, columnspan=2)
 
         Label(self.mainWindow, text="选择邮件图片:", padx=10).grid(column=0,
-                                                             row=9,
+                                                             row=4,
                                                              sticky='e')
         self.MAILIMG = Label(self.mainWindow, text='')
-        self.MAILIMG.grid(column=1, row=9)
+        self.MAILIMG.grid(column=1, row=4)
         self.MAILIMGBTN = Button(self.mainWindow,
                                  text='点击选择',
                                  #  state='disabled',
-                                 command=self._getMailImg)
-        self.MAILIMGBTN.grid(column=2, sticky='w', row=9)
+                                 command=self.getMailImg)
+        self.MAILIMGBTN.grid(column=2, sticky='w', row=4)
 
         self.MAILCLEANIMGBTN = Button(self.mainWindow,
                                       text='清空图片',
                                       #  state='disabled',
                                       command=self._cleanMailImg)
-        self.MAILCLEANIMGBTN.grid(column=2, sticky='e', row=9)
+        self.MAILCLEANIMGBTN.grid(column=2, sticky='e', row=4)
 
         Label(self.mainWindow, text="选择邮件附件:", padx=10).grid(column=0,
-                                                             row=10,
+                                                             row=5,
                                                              sticky='e')
         self.FILEPATH = Label(self.mainWindow, text='')
-        self.FILEPATH.grid(column=1, row=10)
+        self.FILEPATH.grid(column=1, row=5)
         self.MAILFILEBTN = Button(self.mainWindow,
                                   text='点击选择',
                                   state='disabled',
-                                  command=self._getMailFile)
-        self.MAILFILEBTN.grid(column=2, row=10, sticky='w')
+                                  command=self.getMailFile)
+        self.MAILFILEBTN.grid(column=2, row=5, sticky='w')
 
         self.SENDBTN = Button(self.mainWindow,
                               text='群发邮件',
                               state='disabled',
-                              command=self._sendMails)
-        self.SENDBTN.grid(column=1, row=11)
-        self.TIP2 = Label(self.mainWindow, text="")
-        self.TIP2.grid(column=0, row=12, columnspan=3)
-
+                              command=self.sendMails)
+        self.SENDBTN.grid(column=1, row=6)
         dialogMsg(m='t')
 
-    def _getGids(self):
+    def getGids(self):
         '''扫码获取所有群号'''
         gids = crawlGroupIds()
-        if gids == 0:
+        if not gids:
             dialogMsg('请确认驱动版本以及是否在本文件夹内', 'err')
         else:
             dialogMsg('获取群号成功')
             self.STARTCRAWLBTN.configure(state='normal')
 
-    def _readGids(self):
+    def readGids(self):
         try:
             with open('groupsNumber.txt', 'r') as gs:
                 strs = gs.read()
@@ -134,31 +132,33 @@ class MyGUI():
                     dialogMsg('读取群号成功')
                     self.STARTCRAWLBTN.configure(state='normal')
                 except json.decoder.JSONDecodeError:
-                    dialogMsg('groupsNumber.txt文件内容格式不是json\n请点击获取群号')
+                    dialogMsg('groupsNumber.txt文件内容格式不是json\n请点击获取群号', 'err')
         except FileNotFoundError:
-            dialogMsg('当前文件夹没有groupsNumber.txt文件')
+            dialogMsg('当前文件夹没有groupsNumber.txt文件', 'err')
 
-    def _getMails(self):
-        mails = crawlQQNum(self.gids)
-        if mails:
-            self.mails = mails
-            self.SENDBTN.configure(state='normal')
+    def getMails(self):
+        res = crawlQQNum(self.gids)
+        if res:
+            self.mails = res
+            self.MAILSUBJ.configure(state='normal')
             self.MAILCON.configure(state='normal')
             self.MAILIMGBTN.configure(state='normal')
             self.MAILFILEBTN.configure(state='normal')
-            self.MAILSUBJ.configure(state='normal')
+            self.SENDBTN.configure(state='normal')
         else:
             logT('获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
             dialogMsg('获取邮箱失败\n请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
 
-    def _getMailFile(self):
+    def getMailFile(self):
         f = filedialog.askopenfilename()
+        logT(f'添加附件成功 {f}')
         if f:
             self.mailFile = f
             self.FILEPATH.configure(text=self.mailFile)
 
-    def _getMailImg(self):
+    def getMailImg(self):
         img = filedialog.askopenfilename()
+        logT(f'添加图片成功 {img}')
         ext = os.path.splitext(img)[-1]
         if img and ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif']:
             self.mailImages.append(img)
@@ -168,58 +168,66 @@ class MyGUI():
     def _cleanMailImg(self):
         self.mailImages = []
         self.MAILIMG.configure(text='')
+        logT('清空图片')
 
-    def _threadSender(self, email, auth, subject, content, imgPath, filePath):
-        users = self.mails[:N]
-        num = 0
-        while users:
-            num += sender(email, auth, subject, users, content, self.TIP2, num,
-                          imgPath, filePath)
-            users = self.mails[num:num + N]
-            if not num:
-                msg = "发送失败, 请换QQ或者稍后再试"
-                self.TIP2.configure(text=msg)
-                return
-        self.TIP2.configure(text=f"发送完成, 邮件成功发送给{num}个人")
+    def _readAccount(self):
+        try:
+            with open('account.json', 'r') as fa:
+                acStr = fa.read()
+                try:
+                    data = json.loads(acStr)
+                    return data
+                except:
+                    msg = ('解析账号失败, 请检查账号格式', 'err')
+                    logT(*msg)
+                    dialogMsg(*msg)
+                    return False
+        except FileExistsError:
+            msg = ('获取发件账号失败, 当前目录下没有account.json', 'err')
+            logT(*msg)
+            dialogMsg(*msg)
+            return False
 
-    # # 开始发送邮件
+    def _threadSender(self, email, auth, mailType, mail, count):
+        for group in self.mails:
+            receivers = self.mails[group][:N]
+            while receivers:
+                num = sender(email, auth, mailType, receivers, mail, count)
+                with self.countLock:
+                    count += num
+                receivers = self.mails[group][count:count + N]
+                if not num:
+                    msg = ("发送失败, 请换QQ或者稍后再试", 'err')
+                    logT(*msg)
+                    dialogMsg(*msg)
+                    return
+        msg = f"发送完成, 邮件成功发送给{count}个人"
+        logT(msg)
+        dialogMsg(msg)
 
-    def _sendMails(self):
-        # self.test_mock()
-        # attach_path = self.attach_dir['text']
-        # bookFile = self.book_dir['text']
-        # if DEBUG:
-        #     sendThread = Thread(
-        #         target=self._threadSender,
-        #         args=(self.mymail, self.mailAuth, 'hello world',
-        #               'hello content',
-        #               r'D:\Projects\pycode\QQGroupMail\test.png',
-        #               r'D:\Projects\pycode\QQGroupMail\mails.txt'))
-        #     sendThread.start()
-        #     return
-        email = self.MYMAIL.get()
-        auth = self.MAILAUTHCODE.get()
+    # 开始发送邮件
+
+    def sendMails(self):
+        self.count = 0
         subject = self.MAILSUBJ.get()
         content = self.MAILCON.get(0.0, END)
-        if email and auth and subject and content:
-            sendThread = Thread(target=self._threadSender,
-                                args=(email, auth, subject, content,
-                                      self.mailImages, self.mailFile))
-            sendThread.start()
+        accounts = self._readAccount()
+        mail = {
+            'subject': subject,
+            'content': content,
+            'images': self.mailImages,
+            'attach': self.mailFile
+        }
+        if accounts and subject and content:
+            for mailType in accounts:
+                for acc in accounts[mailType]:
+                    sendThread = Thread(target=self._threadSender,
+                                        args=(acc['email'], acc['auth'], mailType, mail, self.count))
+                    sendThread.start()
         else:
-            msg = '请完整填写邮箱, 授权码, 邮件主题和正文'
-        self.TIP2.configure(text=msg)
-
-    def _saveMails(self):
-        if not self.mails:
-            self.TIP2.configure(text='请先获取邮箱')
-            return
-        f = open('./mails.txt', 'w')
-        for mail in self.mails:
-            f.write(f'{mail}\n')
-        f.close()
-        self.TIP2.configure(text='保存完成')
-        os.startfile(os.path.abspath('.'))
+            msg = ('请完整填写邮件主题和正文', 'err')
+            logT(*msg)
+            dialogMsg(*msg)
 
     def test_mock(self):
         # self.mymail = '767710688@qq.com'

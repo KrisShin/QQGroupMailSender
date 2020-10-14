@@ -1,6 +1,6 @@
 import logging
 from time import sleep
-from random import randint
+from random import random, randint
 from tkinter import messagebox
 import json
 
@@ -56,7 +56,7 @@ def logT(msg, m='info'):
 
 def randSleep(start, end):
     '''random sleep start seconds to end seconds'''
-    sleep(randint(int(start*10), int(end*10))/10)
+    sleep(random()*(end-start) + start)
 
 
 if __name__ == "__main__":

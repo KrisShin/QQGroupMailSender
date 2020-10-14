@@ -2,29 +2,38 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
-import os, time
+import os
+from utils import randSleep, logT, dialogMsg
 
 SLEEPTIME = 5  # 实际等待时间是5秒
+MAILTPS = {
+    'qq': ('smtp.qq.com', 465),
+    '163': ('smtp.163.com', 465),
+    '126': ('smtp.126.com', 25),
+}
 
 
-def _authLogin(email, auth):
-    server = smtplib.SMTP_SSL("smtp.qq.com", 465)
+def _authLogin(email, auth, mailType):
+    server = smtplib.SMTP_SSL(*MAILTPS[mailType])
     try:
         server.login(email, auth)
+        logT(f'{email}登录成功')
         return server
     except:
+        msg = (f'{email} 登陆失败, 请检查邮箱和授权码', 'err')
+        logT(*msg)
+        dialogMsg(*msg)
         return
 
 
-def _withImg(imgPath, msg):
-    # 添加图片
-    file = open(imgPath, "rb")
-    img_data = file.read()
-    file.close()
-
-    img = MIMEImage(img_data)
-    img.add_header('Content-ID', 'imageid')
-    msg.attach(img)
+def _withImg(imgsPath, msg):
+    '''Add images'''
+    for i, imgPath in enumerate(imgsPath):
+        with open(imgPath, "rb") as fi:
+            img_data = fi.read()
+            img = MIMEImage(img_data)
+            img.add_header('Content-ID', f'imageid{i}')
+            msg.attach(img)
     return msg
 
 
@@ -44,46 +53,40 @@ def _withFile(filePath, msg):
     return msg
 
 
-def _compContent(email, subject, receivers, content, imgPath, filePath):
+def _compContent(email, receivers, mail):
     message = MIMEMultipart('related')
-    message['Subject'] = subject
+    message['Subject'] = mail['subject']
     message['From'] = email
     message['To'] = ','.join(receivers)
+    text = mail['content']
     # content = MIMEText(f'<html><body>{content}</body></html>', 'html', 'utf-8')
+    for i in range(len(mail['images'])):
+        imgContent += f'<div><img src="cid:imageid" alt="imageid{i}"></div>'
     content = MIMEText(
-        f'<html><body><div>{content}</div><img src="cid:imageid" alt="imageid"></body></html>',
+        f'<html><body><pre>{text}</pre>{imgContent}</body></html>',
         'html', 'utf-8')
     message.attach(content)
 
-    if imgPath:
-        message = _withImg(imgPath, message)
-    if filePath:
-        message = _withFile(filePath, message)
+    if mail['images']:
+        message = _withImg(mail['images'], message)
+    if mail['attach']:
+        message = _withFile(mail['attach'], message)
     return message
 
 
-def sender(email,
-           auth,
-           subject,
-           receivers,
-           content,
-           TIP2,
-           num,
-           imgPath=None,
-           filePath=None):
-    server = _authLogin(email, auth)
+def sender(email, auth, mailType, receivers, mail, num=0):
+    server = _authLogin(email, auth, mailType)
     if not server:
         return '登陆失败, 请检查邮箱和授权码'
 
-    msg = _compContent(email, subject, receivers, content, imgPath, filePath)
+    msg = _compContent(email, receivers, mail)
 
     # 发送邮件
     try:
         server.sendmail(email, receivers, msg.as_string())
         server.quit()
-        for i in range(SLEEPTIME, -1, -1):
-            TIP2.configure(text=f"邮件成功发送给{num}个人, {i}秒后刷新")
-            time.sleep(1)
+        logT(f"邮件成功发送给{num}个人, 3到7秒后刷新")
+        randSleep(3, 7)
         return len(receivers)
     except smtplib.SMTPException as e:
         print(e)
