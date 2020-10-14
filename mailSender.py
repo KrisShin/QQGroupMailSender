@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 import os, time
 
-SLEEPTIME = 4  # 实际等待时间4~0 是5秒
+SLEEPTIME = 5  # 实际等待时间是5秒
 
 
 def _authLogin(email, auth):
