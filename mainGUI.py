@@ -36,7 +36,7 @@ class MyGUI():
     # 初始化窗口
     def set_init_window(self):
         self.mainWindow.title("Pow Mail Tool")  # 设置标题
-        self.mainWindow.geometry('620x310+100+50')  # 设置尺寸
+        self.mainWindow.geometry('620x330+100+50')  # 设置尺寸
         self.mainWindow.attributes('-alpha', 1)  # 属性？
 
         # 驱动下载地址
@@ -221,21 +221,21 @@ class MyGUI():
             dialogMsg(*msg)
             return False
 
-    def _threadSender(self, email, auth, mailType, mail, count):
+    def _threadSender(self, email, auth, mailType, mail):
         for group in self.mails:
             receivers = self.mails[group][:N]
             while receivers:
-                num = sender(email, auth, mailType, receivers, mail, count)
-                if num == count:
+                num = sender(email, auth, mailType, receivers, mail)
+                if num == 0:
                     msg = ("发送失败, 请检查账号或者稍后再试", 'err')
                     logT(*msg)
                     dialogMsg(*msg)
                     return
                 with self.countLock:
-                    count = num
-                self.TIP.configure(text=f'邮件成功发送给{count}个人, 5秒后刷新')
-                receivers = self.mails[group][count:count + N]
-        msg = f"发送完成, 邮件成功发送给{count}个人"
+                    self.count += num
+                self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
+                receivers = self.mails[group][self.count:self.count + N]
+        msg = f"发送完成, 邮件成功发送给{self.count}个人"
         logT(msg)
         dialogMsg(msg)
 
@@ -257,7 +257,7 @@ class MyGUI():
             for mailType in accounts:
                 for acc in accounts[mailType]:
                     sendThread = Thread(target=self._threadSender,
-                                        args=(acc['email'], acc['auth'], mailType, mail, self.count))
+                                        args=(acc['email'], acc['auth'], mailType, mail))
                     sendThread.start()
         else:
             msg = ('请完整填写邮件主题和正文', 'err')
@@ -265,13 +265,10 @@ class MyGUI():
             dialogMsg(*msg)
 
     def test_mock(self):
-        # self.mymail = '767710688@qq.com'
-        # self.mailAuth = 'ojosjwekknupbbha'
-        # self.mails = ['2855829886@qq.com']
-
+        self.mymail = '767710688@qq.com'
+        self.mailAuth = 'ojosjwekknupbbha'
         self.mymail = '2855829886@qq.com'
         self.mailAuth = 'diplnzgchsmrdgbb'
-        self.mails = ['767710688@qq.com']
 
 
 def gui_start():

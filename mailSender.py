@@ -75,25 +75,24 @@ def _compContent(email, receivers, mail):
     return message
 
 
-def sender(email, auth, mailType, receivers, mail, num=0):
-    server = _authLogin(email, auth, mailType)
-    if not server:
-        return '登陆失败, 请检查邮箱和授权码'
+def sender(email, auth, mailType, receivers, mail):
+    # server = _authLogin(email, auth, mailType)
+    # if not server:
+    #     return '登陆失败, 请检查邮箱和授权码'
 
     msg = _compContent(email, receivers, mail)
 
     # 发送邮件
     try:
-        server.sendmail(email, receivers, msg.as_string())
-        server.quit()
-        num += len(receivers)
-        logT(f"{email}邮件成功发送, 总计发送{num}人")
-        randSleep(3, 7)
-        return num
+        # server.sendmail(email, receivers, msg.as_string())
+        logT(f'{email} send to mails: {receivers[0]} - {receivers[-1]}')
+        # server.quit()
+        randSleep(4, 7)
+        return len(receivers)
     except smtplib.SMTPException as e:
         print(e)
-        logT(f'{email}发送邮件失败, 原因请查看日志'+e, 'err')
-        dialogMsg(f'{email}发送邮件失败, 原因请查看日志')
+        logT(f'{email} 发送邮件失败, 原因请查看日志'+e, 'err')
+        dialogMsg(f'{email} 发送邮件失败, 原因请查看日志')
         return -1
 
 
