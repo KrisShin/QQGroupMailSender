@@ -1,11 +1,12 @@
 import time
 import os
 import re
+from math import ceil
 import platform
 
 from selenium import webdriver
 
-from utils import save_txt, logT, randSleep, randint, sleep
+from utils import save_txt, logT, randSleep, randint, sleep, DATAPATH
 
 
 DRIVERPATH = r'.\chromedriver.exe' if platform.system(
@@ -16,7 +17,10 @@ def _parseMails(driver):
     html = driver.page_source  # 获取源码
     reg = re.compile(r'<td>\s*?([1-9]\d{4,11})\s*?</td>')
     qqs = re.findall(reg, html)
-    mails = [f'{q}@qq.com' for q in qqs]
+    n = ceil(len(qqs)/10)
+    mails = []
+    for i in range(n):
+        mails.append([f'{qq}@qq.com' for qq in qqs[i*10:(i+1)*10]])
     return mails
 
 
@@ -58,16 +62,15 @@ def crawlQQNum(group_ids):
     logT(f'本次将爬取{count}个群')
     mails = {}
     for gid in group_ids:
-        if gid in os.listdir('groups'):
+        groupDir = os.path.join(DATAPATH, 'groups')
+        if os.path.exists(groupDir) and gid in os.listdir(groupDir):
             continue
         gurl = f'https://qun.qq.com/member.html#gid={gid}'
         driver.get(url=gurl)
         driver.refresh()
-        randSleep(10, 15)  # wating to scan
+        randSleep(10, 12)  # wating to scan
         _scroll2foot(driver)
         mails[gid] = _parseMails(driver)  # 保存本地数据
-        if not os.path.exists('groups'):
-            os.mkdir('groups')
         save_txt(mails[gid], f'groups/{gid}')
         count -= 1
         logT(f'群号:{gid} 已爬取完成并保存')
@@ -88,7 +91,7 @@ def crawlGroupIds():
     driver.get(url=url)
     time.sleep(12)  # 等待扫码登录成功
     group_ids = _parse_group(driver)
-    save_txt(group_ids, 'groupsNumber.txt')
+    save_txt(group_ids, 'groupsNumber')
     driver.quit()
     logT('获取群号完成')
     return group_ids

@@ -3,6 +3,7 @@ from time import sleep
 from random import random, randint
 from tkinter import messagebox
 import json
+import os
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
@@ -13,6 +14,11 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+# DATAPATH = os.path.join(os.environ['APPDATA'], 'misc', 'QGM')
+DATAPATH = '.'
+
+if not os.path.exists(DATAPATH):
+    os.makedirs(DATAPATH, 777)
 
 TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver并放入当前文件夹
 驱动下载地址在本程序左上角
@@ -43,9 +49,13 @@ TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver
 
 
 def save_txt(data, filePath, mode='w'):
+    path = os.path.join(DATAPATH, filePath)
+    dirc = os.path.split(path)[0]
+    if not os.path.exists(dirc):
+        os.makedirs(dirc, 777)
     if not isinstance(data, str):
         data = json.dumps(data)
-    with open(filePath, mode) as fs:
+    with open(path, mode) as fs:
         fs.write(data)
     return True
 

@@ -85,9 +85,8 @@ def sender(email, auth, mailType, receivers, mail):
     # 发送邮件
     try:
         # server.sendmail(email, receivers, msg.as_string())
-        logT(f'{email} send to mails: {receivers[0]} - {receivers[-1]}')
         # server.quit()
-        randSleep(4, 7)
+        randSleep(0.4, 0.7)
         return len(receivers)
     except smtplib.SMTPException as e:
         print(e)

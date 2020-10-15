@@ -7,8 +7,9 @@ from tkinter import END
 import os
 from mailSender import sender
 from spider import crawlQQNum, crawlGroupIds
-from threading import Thread, Lock
-from utils import logT, dialogMsg, json
+from threading import Thread, Lock, enumerate as eu
+from utils import logT, dialogMsg, json, DATAPATH
+from collections import deque
 
 N = 10  # 一次给10个人发送邮件
 
@@ -32,6 +33,7 @@ class MyGUI():
         self.mails = []
         self.countLock = Lock()
         self.count = 0
+        self.queue = deque()
 
     # 初始化窗口
     def set_init_window(self):
@@ -129,11 +131,12 @@ class MyGUI():
             dialogMsg('请确认驱动版本以及是否在本文件夹内', 'err')
         else:
             dialogMsg('获取群号成功')
+            self.gids = gids
             self.STARTCRAWLBTN.configure(state='normal')
 
     def readGids(self):
         try:
-            with open('groupsNumber.txt', 'r') as gs:
+            with open(os.path.join(DATAPATH, 'groupsNumber'), 'r') as gs:
                 strs = gs.read()
                 try:
                     gids = json.loads(strs)
@@ -141,9 +144,9 @@ class MyGUI():
                     dialogMsg('读取群号成功')
                     self.STARTCRAWLBTN.configure(state='normal')
                 except json.decoder.JSONDecodeError:
-                    dialogMsg('groupsNumber.txt文件内容格式不是json\n请点击获取群号', 'err')
+                    dialogMsg('groupsNumber文件内容格式不是json\n请点击获取群号', 'err')
         except FileNotFoundError:
-            dialogMsg('当前文件夹没有groupsNumber.txt文件', 'err')
+            dialogMsg('没有找到groupsNumber文件', 'err')
 
     def readMails(self):
         try:
@@ -151,7 +154,7 @@ class MyGUI():
             mails = {}
             if gidFiles:
                 for gid in gidFiles:
-                    with open(f'groups/{gid}', 'r') as fg:
+                    with open(os.path.join(DATAPATH, f'groups/{gid}'), 'r') as fg:
                         mails[gid] = json.loads(fg.read())
                 self._setMails(mails)
                 dialogMsg('读取邮箱完成')
@@ -169,6 +172,7 @@ class MyGUI():
         res = crawlQQNum(self.gids)
         if res:
             self._setMails(res)
+            dialogMsg('获取邮箱成功')
         else:
             msg = ('获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
             logT(*msg)
@@ -197,15 +201,17 @@ class MyGUI():
             self.mailImages.append(img)
             imgs = [os.path.split(img)[-1] for img in self.mailImages]
             self.MAILIMG.configure(text=','.join(imgs))
+            self.MAILCLEANIMGBTN.configure(state='normal')
 
     def _cleanMailImg(self):
         self.mailImages = []
         self.MAILIMG.configure(text='')
         logT('清空图片')
+        self.MAILCLEANIMGBTN.configure(state='disabled')
 
     def _readAccount(self):
         try:
-            with open('account.json', 'r') as fa:
+            with open(os.path.join(DATAPATH, 'account.json'), 'r') as fa:
                 acStr = fa.read()
                 try:
                     data = json.loads(acStr)
@@ -222,9 +228,9 @@ class MyGUI():
             return False
 
     def _threadSender(self, email, auth, mailType, mail):
-        for group in self.mails:
-            receivers = self.mails[group][:N]
-            while receivers:
+        def __loop():
+            while self.queue:
+                receivers = self.queue.popleft()
                 num = sender(email, auth, mailType, receivers, mail)
                 if num == 0:
                     msg = ("发送失败, 请检查账号或者稍后再试", 'err')
@@ -233,11 +239,15 @@ class MyGUI():
                     return
                 with self.countLock:
                     self.count += num
+                logT(
+                    f'total: {self.count} {email} send to mails: {receivers[0]} - {receivers[-1]}')
                 self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
-                receivers = self.mails[group][self.count:self.count + N]
-        msg = f"发送完成, 邮件成功发送给{self.count}个人"
-        logT(msg)
-        dialogMsg(msg)
+        if self.queue:
+            __loop()
+        for group in self.mails:
+            self.queue.extend(self.mails[group])
+            del self.mails[group]
+            break
 
     # 开始发送邮件
 
@@ -252,12 +262,14 @@ class MyGUI():
             'images': self.mailImages,
             'attach': self.mailFile
         }
+        tds = list()
         if accounts and subject and content:
             self.TIP.configure(text='开始发送邮件, 请等待或者查看日志')
             for mailType in accounts:
                 for acc in accounts[mailType]:
                     sendThread = Thread(target=self._threadSender,
                                         args=(acc['email'], acc['auth'], mailType, mail))
+                    tds.append(sendThread)
                     sendThread.start()
         else:
             msg = ('请完整填写邮件主题和正文', 'err')
