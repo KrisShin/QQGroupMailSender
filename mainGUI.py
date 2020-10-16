@@ -5,6 +5,7 @@ from tkinter import Entry, Label, Button, filedialog, StringVar
 from tkinter.scrolledtext import ScrolledText
 from tkinter import END
 import os
+import datetime
 from mailSender import sender
 from spider import crawlQQNum, crawlGroupIds
 from threading import Thread, Lock, enumerate as eu
@@ -24,16 +25,15 @@ class MyGUI():
     def __init__(self, window):
         self.mainWindow = window
         self.gids = ''
-        self.mymail = ''
-        self.mailAuth = ''
         self.subject = ''
         self.mailFile = None
         self.mailImages = []
         self.mailContent = ''
-        self.mails = []
+        self.mails = {}
         self.countLock = Lock()
         self.count = 0
         self.queue = deque()
+        self.currentGroup = ''
 
     # 初始化窗口
     def set_init_window(self):
@@ -121,7 +121,7 @@ class MyGUI():
 
         self.TIP = Label(text='')
         self.TIP.grid(column=0, row=7, columnspan=4)
-        # dialogMsg(m='t')
+        dialogMsg(m='t')
         logT('启动程序')
 
     def getGids(self):
@@ -130,61 +130,83 @@ class MyGUI():
         if not gids:
             dialogMsg('请确认驱动版本以及是否在本文件夹内', 'err')
         else:
+            logT(f'获取群号成功: {gids}')
             dialogMsg('获取群号成功')
             self.gids = gids
             self.STARTCRAWLBTN.configure(state='normal')
 
     def readGids(self):
         try:
-            with open(os.path.join(DATAPATH, 'groupsNumber'), 'r') as gs:
+            with open('groupsNumber', 'r') as gs:
                 strs = gs.read()
                 try:
                     gids = json.loads(strs)
+                    if not gids:
+                        logT('groupsNumber没有内容', 'err')
+                        dialogMsg('groupsNumber没有内容', 'err')
+                        return False
                     self.gids = gids
-                    dialogMsg('读取群号成功')
-                    self.STARTCRAWLBTN.configure(state='normal')
                 except json.decoder.JSONDecodeError:
-                    dialogMsg('groupsNumber文件内容格式不是json\n请点击获取群号', 'err')
+                    logT('groupsNumber内容解析失败', 'err')
+                    dialogMsg('groupsNumber文件内容格式不是json', 'err')
+                    return False
+                dialogMsg('读取群号成功')
+                logT(f'读取群号成功: {gids}')
+                self.STARTCRAWLBTN.configure(state='normal')
+                return True
         except FileNotFoundError:
-            dialogMsg('没有找到groupsNumber文件', 'err')
+            try:
+                with open(os.path.join(DATAPATH, 'groupsNumber'), 'r') as gs:
+                    strs = gs.read()
+                    gids = json.loads(strs)
+                    if not gids:
+                        logT('groupsNumber没有内容', 'err')
+                        dialogMsg('请重新获取群号', 'err')
+                        return False
+                    self.gids = gids
+                    dialogMsg(f'读取群号成功{gids}')
+                    logT('读取群号成功')
+                    self.STARTCRAWLBTN.configure(state='normal')
+            except FileNotFoundError:
+                dialogMsg('没有找到groupsNumber文件', 'err')
 
     def readMails(self):
         try:
-            gidFiles = os.listdir('groups')
-            mails = {}
+            gidFiles = os.listdir(os.path.join(DATAPATH, 'groups'))
             if gidFiles:
+                mails = {}
                 for gid in gidFiles:
                     with open(os.path.join(DATAPATH, f'groups/{gid}'), 'r') as fg:
                         mails[gid] = json.loads(fg.read())
-                self._setMails(mails)
+                self.mails = mails
+                self._setWidgetState('normal')
                 dialogMsg('读取邮箱完成')
                 logT(f'读取邮箱完成， 群号：{gidFiles}')
-                return
+                return True
             msg = ('没有群邮箱文件在groups文件夹内', 'err')
-            logT(msg)
-            dialogMsg(msg)
+            logT(*msg)
+            dialogMsg(*msg)
         except FileNotFoundError:
-            msg = ('没有groups文件夹', 'err')
-            logT(msg)
-            dialogMsg(msg)
+            logT('没有groups文件夹', 'err')
+            dialogMsg('请先获取邮箱', 'err')
 
     def getMails(self):
         res = crawlQQNum(self.gids)
         if res:
-            self._setMails(res)
+            self.mails = res
+            self._setWidgetState('normal')
             dialogMsg('获取邮箱成功')
         else:
             msg = ('获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
             logT(*msg)
             dialogMsg(*msg)
 
-    def _setMails(self, mails):
-        self.mails = mails
-        self.MAILSUBJ.configure(state='normal')
-        self.MAILCON.configure(state='normal')
-        self.MAILIMGBTN.configure(state='normal')
-        self.MAILFILEBTN.configure(state='normal')
-        self.SENDBTN.configure(state='normal')
+    def _setWidgetState(self, mode):
+        self.MAILSUBJ.configure(state=mode)
+        self.MAILCON.configure(state=mode)
+        self.MAILIMGBTN.configure(state=mode)
+        self.MAILFILEBTN.configure(state=mode)
+        self.SENDBTN.configure(state=mode)
 
     def getMailFile(self):
         f = filedialog.askopenfilename()
@@ -227,7 +249,7 @@ class MyGUI():
             dialogMsg(*msg)
             return False
 
-    def _threadSender(self, email, auth, mailType, mail):
+    def _senderThread(self, email, auth, mailType, mail):
         def __loop():
             while self.queue:
                 receivers = self.queue.popleft()
@@ -244,10 +266,36 @@ class MyGUI():
                 self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
         if self.queue:
             __loop()
+        if self.currentGroup:
+            with self.countLock:
+                logT(f'群{self.currentGroup} 已全部发送')
+                groupFile = os.path.join(DATAPATH, 'groups', self.currentGroup)
+                if os.path.exists(groupFile):
+                    os.remove(groupFile)
+                    print(
+                        f'remove {self.currentGroup} at {datetime.datetime.now()}')
         for group in self.mails:
             self.queue.extend(self.mails[group])
+            self.currentGroup = group
             del self.mails[group]
             break
+
+    def _senderManager(self, accounts, mail):
+        self._setWidgetState('disabled')
+        tds = list()
+        for mailType in accounts:
+            for acc in accounts[mailType]:
+                sendThread = Thread(target=self._senderThread,
+                                    args=(acc['email'], acc['auth'], mailType, mail))
+                tds.append(sendThread)
+                sendThread.start()
+        for td in tds:
+            td.join()
+        msg = f'发送完成, 邮件成功发送给{self.count}个人'
+        logT(msg)
+        dialogMsg(msg)
+        self.TIP.configure(text=msg)
+        self._setWidgetState('normal')
 
     # 开始发送邮件
 
@@ -256,21 +304,18 @@ class MyGUI():
         subject = self.MAILSUBJ.get()
         content = self.MAILCON.get(0.0, END)
         accounts = self._readAccount()
+        if not accounts:
+            return
         mail = {
             'subject': subject,
             'content': content,
             'images': self.mailImages,
             'attach': self.mailFile
         }
-        tds = list()
         if accounts and subject and content:
             self.TIP.configure(text='开始发送邮件, 请等待或者查看日志')
-            for mailType in accounts:
-                for acc in accounts[mailType]:
-                    sendThread = Thread(target=self._threadSender,
-                                        args=(acc['email'], acc['auth'], mailType, mail))
-                    tds.append(sendThread)
-                    sendThread.start()
+            td = Thread(target=self._senderManager, args=(accounts, mail))
+            td.start()
         else:
             msg = ('请完整填写邮件主题和正文', 'err')
             logT(*msg)

@@ -58,7 +58,7 @@ def crawlQQNum(group_ids):
     driver = _launchChromeDriver()
     if not driver:
         return False
-    count = randint(3, 5)
+    count = randint(3, 4)
     logT(f'本次将爬取{count}个群')
     mails = {}
     for gid in group_ids:

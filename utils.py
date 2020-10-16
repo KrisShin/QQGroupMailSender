@@ -14,8 +14,8 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-# DATAPATH = os.path.join(os.environ['APPDATA'], 'misc', 'QGM')
-DATAPATH = '.'
+DATAPATH = os.path.join(os.environ['APPDATA'], 'misc', 'QGM')
+# DATAPATH = '.'
 
 if not os.path.exists(DATAPATH):
     os.makedirs(DATAPATH, 777)
@@ -23,7 +23,6 @@ if not os.path.exists(DATAPATH):
 TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver并放入当前文件夹
 驱动下载地址在本程序左上角
 发送者的邮箱和授权码请以json格式放入当前文件夹
-
 ---account.json
 {
     "qq": [

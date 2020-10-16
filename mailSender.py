@@ -59,7 +59,6 @@ def _compContent(email, receivers, mail):
     message['From'] = email
     message['To'] = ','.join(receivers)
     text = mail['content']
-    # content = MIMEText(f'<html><body>{content}</body></html>', 'html', 'utf-8')
     imgContent = ''
     for i in range(len(mail['images'])):
         imgContent += f'<div><img src="cid:imageid" alt="imageid{i}"></div>'
@@ -76,16 +75,16 @@ def _compContent(email, receivers, mail):
 
 
 def sender(email, auth, mailType, receivers, mail):
-    # server = _authLogin(email, auth, mailType)
-    # if not server:
-    #     return '登陆失败, 请检查邮箱和授权码'
+    server = _authLogin(email, auth, mailType)
+    if not server:
+        return '登陆失败, 请检查邮箱和授权码'
 
     msg = _compContent(email, receivers, mail)
 
     # 发送邮件
     try:
-        # server.sendmail(email, receivers, msg.as_string())
-        # server.quit()
+        server.sendmail(email, receivers, msg.as_string())
+        server.quit()
         randSleep(0.4, 0.7)
         return len(receivers)
     except smtplib.SMTPException as e:
