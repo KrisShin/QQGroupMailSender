@@ -233,7 +233,7 @@ class MyGUI():
 
     def _readAccount(self):
         try:
-            with open(os.path.join(DATAPATH, 'account.json'), 'r') as fa:
+            with open('account.json', 'r') as fa:
                 acStr = fa.read()
                 try:
                     data = json.loads(acStr)
