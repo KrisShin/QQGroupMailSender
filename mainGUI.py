@@ -30,10 +30,11 @@ class MyGUI():
         self.mailImages = []
         self.mailContent = ''
         self.mails = {}
-        self.countLock = Lock()
+        self.threadLock = Lock()
         self.count = 0
         self.queue = deque()
         self.currentGroup = ''
+        self.status = True
 
     # 初始化窗口
     def set_init_window(self):
@@ -251,34 +252,40 @@ class MyGUI():
 
     def _senderThread(self, email, auth, mailType, mail):
         def __loop():
-            while self.queue:
+            while self.queue and self.status:
                 receivers = self.queue.popleft()
                 num = sender(email, auth, mailType, receivers, mail)
-                if num == 0:
-                    msg = ("发送失败, 请检查账号或者稍后再试", 'err')
-                    logT(*msg)
-                    dialogMsg(*msg)
-                    return
-                with self.countLock:
+                with self.threadLock:
+                    if not self.status:
+                        return False
+                    if num == 0:
+                        msg = (f"请检查{email}邮箱和授权码", 'err')
+                        logT(*msg)
+                        dialogMsg(*msg)
+                        self.status = False
+                        return False
                     self.count += num
-                logT(
-                    f'total: {self.count} {email} send to mails: {receivers[0]} - {receivers[-1]}')
-                self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
-        if self.queue:
+                    logT(
+                        f'total: {self.count} {email} send to mails: {receivers[0]} - {receivers[-1]}')
+                    self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
+        if self.queue and self.status:
             __loop()
-        if self.currentGroup:
-            with self.countLock:
+        if self.currentGroup and self.status:
+            with self.threadLock:
                 logT(f'群{self.currentGroup} 已全部发送')
-                groupFile = os.path.join(DATAPATH, 'groups', self.currentGroup)
+                groupFile = os.path.join(
+                    DATAPATH, 'groups', self.currentGroup)
                 if os.path.exists(groupFile):
                     os.remove(groupFile)
                     print(
                         f'remove {self.currentGroup} at {datetime.datetime.now()}')
-        for group in self.mails:
-            self.queue.extend(self.mails[group])
-            self.currentGroup = group
-            del self.mails[group]
-            break
+
+        if self.status:
+            for group in self.mails:
+                self.queue.extend(self.mails[group])
+                self.currentGroup = group
+                del self.mails[group]
+                break
 
     def _senderManager(self, accounts, mail):
         self._setWidgetState('disabled')
@@ -291,15 +298,23 @@ class MyGUI():
                 sendThread.start()
         for td in tds:
             td.join()
-        msg = f'发送完成, 邮件成功发送给{self.count}个人'
-        logT(msg)
-        dialogMsg(msg)
-        self.TIP.configure(text=msg)
-        self._setWidgetState('normal')
+        if self.status:
+            msg = f'发送完成, 邮件成功发送给{self.count}个人'
+            logT(msg)
+            dialogMsg(msg)
+            self.TIP.configure(text=msg)
+            self._setWidgetState('normal')
+            return
+        msg = ("发送失败, 请检查账号或者稍后再试", 'err')
+        self.TIP.configure(text=msg[0])
+        logT(*msg)
+        dialogMsg(*msg)
+        return
 
     # 开始发送邮件
 
     def sendMails(self):
+        self.status = True
         self.count = 0
         subject = self.MAILSUBJ.get()
         content = self.MAILCON.get(0.0, END)

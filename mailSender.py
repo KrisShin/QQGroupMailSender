@@ -7,14 +7,14 @@ from utils import randSleep, logT, dialogMsg
 
 SLEEPTIME = 5  # 实际等待时间是5秒
 MAILTPS = {
-    'qq': ('smtp.qq.com', 465),
-    '163': ('smtp.163.com', 465),
-    '126': ('smtp.126.com', 25),
+    'qq': 'smtp.qq.com',
+    '163': 'smtp.163.com',
+    '126': 'smtp.126.com',
 }
 
 
 def _authLogin(email, auth, mailType):
-    server = smtplib.SMTP_SSL(*MAILTPS[mailType])
+    server = smtplib.SMTP_SSL(MAILTPS[mailType], 465)
     try:
         server.login(email, auth)
         logT(f'{email}登录成功')
@@ -22,8 +22,7 @@ def _authLogin(email, auth, mailType):
     except:
         msg = (f'{email} 登陆失败, 请检查邮箱和授权码', 'err')
         logT(*msg)
-        dialogMsg(*msg)
-        return
+        return False
 
 
 def _withImg(imgsPath, msg):
@@ -77,7 +76,7 @@ def _compContent(email, receivers, mail):
 def sender(email, auth, mailType, receivers, mail):
     server = _authLogin(email, auth, mailType)
     if not server:
-        return '登陆失败, 请检查邮箱和授权码'
+        return 0
 
     msg = _compContent(email, receivers, mail)
 
