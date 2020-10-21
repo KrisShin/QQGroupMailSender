@@ -284,8 +284,8 @@ class MyGUI():
             for group in self.mails:
                 self.queue.extend(self.mails[group])
                 self.currentGroup = group
-                del self.mails[group]
-                break
+                __loop()
+                # del self.mails[group]
 
     def _senderManager(self, accounts, mail):
         self._setWidgetState('disabled')

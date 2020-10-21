@@ -19,7 +19,8 @@ def _authLogin(email, auth, mailType):
         server.login(email, auth)
         logT(f'{email}登录成功')
         return server
-    except:
+    except Exception as e:
+        print(e)
         msg = (f'{email} 登陆失败, 请检查邮箱和授权码', 'err')
         logT(*msg)
         return False
