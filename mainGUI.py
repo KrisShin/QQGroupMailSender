@@ -257,7 +257,7 @@ class MyGUI():
             with self.threadLock:
                 if not self.status:
                     return False
-                if num == 0:
+                if num != len(receivers):
                     msg = (f"请检查{email}邮箱和授权码", 'err')
                     logT(*msg)
                     dialogMsg(*msg)
