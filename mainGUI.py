@@ -162,8 +162,8 @@ class MyGUI():
                         dialogMsg('请重新获取群号', 'err')
                         return False
                     self.gids = gids
-                    dialogMsg(f'读取群号成功{gids}')
-                    logT('读取群号成功')
+                    dialogMsg('读取群号成功')
+                    logT(f'读取群号成功: {gids}')
                     self.STARTCRAWLBTN.configure(state='normal')
             except FileNotFoundError:
                 dialogMsg('没有找到groupsNumber文件', 'err')
@@ -284,9 +284,9 @@ class MyGUI():
             if not self.status:
                 break
             logT(f'群{gid} 已全部发送')
-            groupFile = os.path.join(
-                DATAPATH, 'groups', gid)
-            os.remove(groupFile)
+            # groupFile = os.path.join(
+            #     DATAPATH, 'groups', gid)
+            # os.remove(groupFile)
         if self.status:
             msg = f'发送完成, 邮件成功发送给{self.count}个人'
             logT(msg)

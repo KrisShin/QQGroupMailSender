@@ -48,8 +48,8 @@ def _launchChromeDriver():
     try:
         driver = webdriver.Chrome(executable_path=DRIVERPATH)
         return driver
-    except:
-        logT('请确认驱动版本以及是否在本文件夹内', 'err')
+    except Exception as err:
+        logT(f'err: {err} 请确认驱动版本以及是否在本文件夹内', 'err')
         return False
 
 
