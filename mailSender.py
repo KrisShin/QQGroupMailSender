@@ -5,7 +5,6 @@ from email.mime.image import MIMEImage
 import os
 from utils import randSleep, logT, dialogMsg
 
-SLEEPTIME = 5  # 实际等待时间是5秒
 MAILTPS = {
     'qq': 'smtp.qq.com',
     '163': 'smtp.163.com',
@@ -88,7 +87,6 @@ def sender(email, auth, mailType, receivers, mail):
         randSleep(4, 6)
         return len(receivers)
     except smtplib.SMTPException as e:
-        print(e)
         logT(f'{email} 发送邮件失败, 原因请查看日志'+e, 'err')
         dialogMsg(f'{email} 发送邮件失败, 原因请查看日志')
         return -1

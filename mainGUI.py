@@ -26,14 +26,11 @@ class MyGUI():
         self.mainWindow = window
         self.gids = ''
         self.subject = ''
-        self.mailFile = None
-        self.mailImages = []
-        self.mailContent = ''
+        self.mail = {'subject': '', 'content': '', 'images': [], 'attach': None}
         self.mails = {}
         self.threadLock = Lock()
         self.count = 0
         self.queue = deque()
-        self.currentGroup = ''
         self.status = True
 
     # 初始化窗口
@@ -176,13 +173,15 @@ class MyGUI():
             gidFiles = os.listdir(os.path.join(DATAPATH, 'groups'))
             if gidFiles:
                 mails = {}
+                total = 0
                 for gid in gidFiles:
                     with open(os.path.join(DATAPATH, f'groups/{gid}'), 'r') as fg:
                         mails[gid] = json.loads(fg.read())
+                        total += (len(mails[gid])-1)*10 + len(mails[gid][-1])
                 self.mails = mails
                 self._setWidgetState('normal')
-                dialogMsg('读取邮箱完成')
-                logT(f'读取邮箱完成， 群号：{gidFiles}')
+                dialogMsg(f'读取邮箱完成, 共{total}人')
+                logT(f'读取邮箱完成, 共{total}人，群号：{gidFiles}')
                 return True
             msg = ('没有群邮箱文件在groups文件夹内', 'err')
             logT(*msg)
@@ -213,21 +212,22 @@ class MyGUI():
         f = filedialog.askopenfilename()
         if f:
             logT(f'添加附件成功 {f}')
-            self.mailFile = f
-            self.FILEPATH.configure(text=self.mailFile)
+            self.mail['attach'] = f
+            filename = os.path.split(f)[-1]
+            self.FILEPATH.configure(text=filename)
 
     def getMailImg(self):
         img = filedialog.askopenfilename()
         ext = os.path.splitext(img)[-1]
         if img and ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif']:
             logT(f'添加图片成功 {img}')
-            self.mailImages.append(img)
-            imgs = [os.path.split(img)[-1] for img in self.mailImages]
+            self.mail['images'].append(img)
+            imgs = [os.path.split(img)[-1] for img in self.mail['images']]
             self.MAILIMG.configure(text=','.join(imgs))
             self.MAILCLEANIMGBTN.configure(state='normal')
 
     def _cleanMailImg(self):
-        self.mailImages = []
+        self.mail['images'] = []
         self.MAILIMG.configure(text='')
         logT('清空图片')
         self.MAILCLEANIMGBTN.configure(state='disabled')
@@ -251,53 +251,42 @@ class MyGUI():
             return False
 
     def _senderThread(self, email, auth, mailType, mail):
-        def __loop():
-            while self.queue and self.status:
-                receivers = self.queue.popleft()
-                num = sender(email, auth, mailType, receivers, mail)
-                with self.threadLock:
-                    if not self.status:
-                        return False
-                    if num == 0:
-                        msg = (f"请检查{email}邮箱和授权码", 'err')
-                        logT(*msg)
-                        dialogMsg(*msg)
-                        self.status = False
-                        return False
-                    self.count += num
-                    logT(
-                        f'total: {self.count} {email} send to mails: {receivers[0]} - {receivers[-1]}')
-                    self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
-        if self.queue and self.status:
-            __loop()
-        if self.currentGroup and self.status:
+        while self.queue and self.status:
+            receivers = self.queue.popleft()
+            num = sender(email, auth, mailType, receivers, mail)
             with self.threadLock:
-                logT(f'群{self.currentGroup} 已全部发送')
-                groupFile = os.path.join(
-                    DATAPATH, 'groups', self.currentGroup)
-                if os.path.exists(groupFile):
-                    os.remove(groupFile)
-                    print(
-                        f'remove {self.currentGroup} at {datetime.datetime.now()}')
-
-        if self.status:
-            for group in self.mails:
-                self.queue.extend(self.mails[group])
-                self.currentGroup = group
-                __loop()
-                # del self.mails[group]
+                if not self.status:
+                    return False
+                if num == 0:
+                    msg = (f"请检查{email}邮箱和授权码", 'err')
+                    logT(*msg)
+                    dialogMsg(*msg)
+                    self.status = False
+                    return False
+                self.count += num
+                logT(f'sent: {self.count} {email} send to mails: {receivers}')
+                self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
 
     def _senderManager(self, accounts, mail):
         self._setWidgetState('disabled')
         tds = list()
-        for mailType in accounts:
-            for acc in accounts[mailType]:
-                sendThread = Thread(target=self._senderThread,
-                                    args=(acc['email'], acc['auth'], mailType, mail))
-                tds.append(sendThread)
-                sendThread.start()
-        for td in tds:
-            td.join()
+        for gid in self.mails:
+            self.queue.extend(self.mails[gid])
+            logT(f'开始向群: {gid} 的成员发送邮件')
+            for mailType in accounts:
+                for acc in accounts[mailType]:
+                    sendThread = Thread(target=self._senderThread,
+                                        args=(acc['email'], acc['auth'], mailType, mail))
+                    tds.append(sendThread)
+                    sendThread.start()
+            for td in tds:
+                td.join()
+            if not self.status:
+                break
+            logT(f'群{gid} 已全部发送')
+            groupFile = os.path.join(
+                DATAPATH, 'groups', gid)
+            os.remove(groupFile)
         if self.status:
             msg = f'发送完成, 邮件成功发送给{self.count}个人'
             logT(msg)
@@ -316,20 +305,14 @@ class MyGUI():
     def sendMails(self):
         self.status = True
         self.count = 0
-        subject = self.MAILSUBJ.get()
-        content = self.MAILCON.get(0.0, END)
+        self.mail['subject'] = self.MAILSUBJ.get()
+        self.mail['content'] = self.MAILCON.get(0.0, END)
         accounts = self._readAccount()
         if not accounts:
             return
-        mail = {
-            'subject': subject,
-            'content': content,
-            'images': self.mailImages,
-            'attach': self.mailFile
-        }
-        if accounts and subject and content:
+        if accounts and self.mail['subject'] and self.mail['content']:
             self.TIP.configure(text='开始发送邮件, 请等待或者查看日志')
-            td = Thread(target=self._senderManager, args=(accounts, mail))
+            td = Thread(target=self._senderManager, args=(accounts, self.mail))
             td.start()
         else:
             msg = ('请完整填写邮件主题和正文', 'err')
