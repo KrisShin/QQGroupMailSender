@@ -91,7 +91,6 @@ def crawlGroupIds():
     driver.get(url=url)
     time.sleep(12)  # 等待扫码登录成功
     group_ids = _parse_group(driver)
-    save_txt(group_ids, 'groupsNumber')
     driver.quit()
     logT('获取群号完成')
     return group_ids

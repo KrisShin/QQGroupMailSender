@@ -1,20 +1,19 @@
 # -*- coding:utf-8 -*-
 
-import tkinter
-from tkinter import Entry, Label, Button, filedialog, StringVar
-from tkinter.scrolledtext import ScrolledText
-from tkinter import END
-import os
+from collections import deque
 import datetime
+import os
+from tkinter import Entry, Label, Button, filedialog, StringVar, Scrollbar, Listbox, Tk, ttk
+from tkinter.scrolledtext import ScrolledText
+
 from mailSender import sender
 from spider import crawlQQNum, crawlGroupIds
 from threading import Thread, Lock, enumerate as eu
 from utils import logT, dialogMsg, json, DATAPATH
-from collections import deque
 
 N = 10  # 一次给10个人发送邮件
-
-DEBUG = True
+WINDOW_WIDTH = 650
+WINDOW_HEIGHT = 430
 
 
 class MyGUI():
@@ -24,19 +23,22 @@ class MyGUI():
     # 构造函数
     def __init__(self, window):
         self.mainWindow = window
-        self.gids = ''
+        self.gids = []
         self.subject = ''
-        self.mail = {'subject': '', 'content': '', 'images': [], 'attach': None}
+        self.mail = {'subject': '', 'content': '',
+                     'images': [], 'attach': None}
         self.mails = {}
         self.threadLock = Lock()
         self.count = 0
+        self.total = 0
         self.queue = deque()
         self.status = True
 
     # 初始化窗口
     def set_init_window(self):
         self.mainWindow.title("Pow Mail Tool")  # 设置标题
-        self.mainWindow.geometry('620x330+100+50')  # 设置尺寸
+        self.mainWindow.geometry(
+            f'{WINDOW_WIDTH}x{WINDOW_HEIGHT}+100+50')  # 设置尺寸
         self.mainWindow.attributes('-alpha', 1)  # 属性？
 
         # 驱动下载地址
@@ -52,15 +54,10 @@ class MyGUI():
                                  command=self.getGids)
         self.GETGIDSBTN.grid(column=0, row=1, sticky='e')
 
-        self.READGIDSBTN = Button(self.mainWindow,
-                                  text='读取群号',
-                                  command=self.readGids)
-        self.READGIDSBTN.grid(column=1, row=1)
-
         self.STARTCRAWLBTN = Button(self.mainWindow,
                                     text='读取邮箱',
                                     command=self.readMails)
-        self.STARTCRAWLBTN.grid(column=2, row=1)
+        self.STARTCRAWLBTN.grid(column=1, row=1, columnspan=2)
 
         self.STARTCRAWLBTN = Button(self.mainWindow,
                                     text='开始爬取',
@@ -68,57 +65,76 @@ class MyGUI():
                                     command=self.getMails)
         self.STARTCRAWLBTN.grid(column=3, row=1)
 
+        Label(self.mainWindow, text="选择要发送邮件的群\n(右侧双击删除)",
+              padx=10).grid(column=0, row=2, sticky='e')
+        self.ALLGROUPLIST = Listbox(
+            self.mainWindow, height=5, selectmode='multiple', state='disabled')
+        self.ALLGROUPLIST.grid(column=1, row=2)
+        self.CHOOSEGROUPBTN = Button(
+            self.mainWindow, text='>>', state='disabled', width=10, command=self.chooseGroup)
+        self.CHOOSEGROUPBTN.grid(column=2, row=2)
+        self.CHOOSEGROUPLIST = Listbox(
+            self.mainWindow, height=5, state='disabled')
+        self.CHOOSEGROUPLIST.grid(column=3, row=2)
+        self.CHOOSEGROUPLIST.bind(
+            '<Double-Button-1>', self.deleteGroup)  # 双击删除gid
+
         Label(self.mainWindow, text="请输入邮件主题:", padx=10).grid(column=0,
-                                                              row=2,
+                                                              row=3,
                                                               sticky='e')
         self.MAILSUBJ = Entry(self.mainWindow, state='disabled')
-        self.MAILSUBJ.grid(column=1, row=2, sticky='we')
+        self.MAILSUBJ.grid(column=1, row=3, sticky='we')
 
         Label(self.mainWindow, text="输入邮件内容:", padx=10).grid(column=0,
-                                                             row=3,
+                                                             row=4,
                                                              sticky='e')
         self.MAILCON = ScrolledText(self.mainWindow,
                                     width=65,
                                     height=10,
                                     state='disabled')
-        self.MAILCON.grid(column=1, row=3, columnspan=3)
+        self.MAILCON.grid(column=1, row=4, columnspan=3)
 
         Label(self.mainWindow, text="选择邮件图片:", padx=10).grid(column=0,
-                                                             row=4,
+                                                             row=5,
                                                              sticky='e')
         self.MAILIMG = Label(self.mainWindow, text='')
-        self.MAILIMG.grid(column=1, row=4)
+        self.MAILIMG.grid(column=1, row=5)
         self.MAILIMGBTN = Button(self.mainWindow,
                                  text='点击选择',
                                  state='disabled',
                                  command=self.getMailImg)
-        self.MAILIMGBTN.grid(column=2, row=4)
+        self.MAILIMGBTN.grid(column=2, row=5)
 
         self.MAILCLEANIMGBTN = Button(self.mainWindow,
                                       text='清空图片',
                                       state='disabled',
                                       command=self._cleanMailImg)
-        self.MAILCLEANIMGBTN.grid(column=3, row=4)
+        self.MAILCLEANIMGBTN.grid(column=3, row=5)
 
         Label(self.mainWindow, text="选择邮件附件:", padx=10).grid(column=0,
-                                                             row=5,
+                                                             row=6,
                                                              sticky='e')
         self.FILEPATH = Label(self.mainWindow, text='')
-        self.FILEPATH.grid(column=1, row=5)
+        self.FILEPATH.grid(column=1, row=6)
         self.MAILFILEBTN = Button(self.mainWindow,
                                   text='点击选择',
                                   state='disabled',
                                   command=self.getMailFile)
-        self.MAILFILEBTN.grid(column=2, row=5)
+        self.MAILFILEBTN.grid(column=2, row=6)
 
         self.SENDBTN = Button(self.mainWindow,
                               text='群发邮件',
                               state='disabled',
                               command=self.sendMails)
-        self.SENDBTN.grid(column=1, row=6, columnspan=2)
+        self.SENDBTN.grid(column=0, row=7)
+
+        self.PROGERSS = ttk.Progressbar(
+            self.mainWindow, orient="horizontal", length=300, mode="determinate")
+        self.PROGERSS.grid(column=1, row=7, columnspan=3)
 
         self.TIP = Label(text='')
-        self.TIP.grid(column=0, row=7, columnspan=4)
+        self.TIP.grid(column=0, row=8, columnspan=4)
+
         dialogMsg(m='t')
         logT('启动程序')
 
@@ -133,41 +149,6 @@ class MyGUI():
             self.gids = gids
             self.STARTCRAWLBTN.configure(state='normal')
 
-    def readGids(self):
-        try:
-            with open('groupsNumber', 'r') as gs:
-                strs = gs.read()
-                try:
-                    gids = json.loads(strs)
-                    if not gids:
-                        logT('groupsNumber没有内容', 'err')
-                        dialogMsg('groupsNumber没有内容', 'err')
-                        return False
-                    self.gids = gids
-                except json.decoder.JSONDecodeError:
-                    logT('groupsNumber内容解析失败', 'err')
-                    dialogMsg('groupsNumber文件内容格式不是json', 'err')
-                    return False
-                dialogMsg('读取群号成功')
-                logT(f'读取群号成功: {gids}')
-                self.STARTCRAWLBTN.configure(state='normal')
-                return True
-        except FileNotFoundError:
-            try:
-                with open(os.path.join(DATAPATH, 'groupsNumber'), 'r') as gs:
-                    strs = gs.read()
-                    gids = json.loads(strs)
-                    if not gids:
-                        logT('groupsNumber没有内容', 'err')
-                        dialogMsg('请重新获取群号', 'err')
-                        return False
-                    self.gids = gids
-                    dialogMsg('读取群号成功')
-                    logT(f'读取群号成功: {gids}')
-                    self.STARTCRAWLBTN.configure(state='normal')
-            except FileNotFoundError:
-                dialogMsg('没有找到groupsNumber文件', 'err')
-
     def readMails(self):
         try:
             gidFiles = os.listdir(os.path.join(DATAPATH, 'groups'))
@@ -177,9 +158,11 @@ class MyGUI():
                 for gid in gidFiles:
                     with open(os.path.join(DATAPATH, f'groups/{gid}'), 'r') as fg:
                         mails[gid] = json.loads(fg.read())
-                        total += (len(mails[gid])-1)*10 + len(mails[gid][-1])
+                        total += (len(mails[gid])-1) * \
+                            10 + len(mails[gid][-1])
                 self.mails = mails
                 self._setWidgetState('normal')
+                self.ALLGROUPLIST.insert('end', *mails.keys())
                 dialogMsg(f'读取邮箱完成, 共{total}人')
                 logT(f'读取邮箱完成, 共{total}人，群号：{gidFiles}')
                 return True
@@ -195,13 +178,31 @@ class MyGUI():
         if res:
             self.mails = res
             self._setWidgetState('normal')
+            self.ALLGROUPLIST.insert('end', res.keys())
             dialogMsg('获取邮箱成功')
         else:
             msg = ('获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
             logT(*msg)
             dialogMsg(*msg)
 
+    def chooseGroup(self):
+        idxs = self.ALLGROUPLIST.curselection()
+        for idx in idxs:
+            gid = self.ALLGROUPLIST.get(idx)
+            if gid not in self.gids:
+                self.gids.append(gid)
+                self.CHOOSEGROUPLIST.insert('end', gid)
+
+    def deleteGroup(self, idx):
+        gid = self.CHOOSEGROUPLIST.get('active')
+        self.CHOOSEGROUPLIST.delete(0, 'end')
+        self.gids.remove(gid)
+        self.CHOOSEGROUPLIST.insert('end', *self.gids)
+
     def _setWidgetState(self, mode):
+        self.ALLGROUPLIST.configure(state=mode)
+        self.CHOOSEGROUPBTN.configure(state=mode)
+        self.CHOOSEGROUPLIST.configure(state=mode)
         self.MAILSUBJ.configure(state=mode)
         self.MAILCON.configure(state=mode)
         self.MAILIMGBTN.configure(state=mode)
@@ -265,12 +266,16 @@ class MyGUI():
                     return False
                 self.count += num
                 logT(f'sent: {self.count} {email} send to mails: {receivers}')
-                self.TIP.configure(text=f'邮件成功发送给{self.count}个人, 5秒后刷新')
+                self.TIP.configure(
+                    text=f'邮件成功发送给{self.count}个人, 共{self.total}人, 请等待刷新')
+                self.PROGERSS['value'] = (self.count/self.total)*100
 
     def _senderManager(self, accounts, mail):
         self._setWidgetState('disabled')
         tds = list()
         for gid in self.mails:
+            if gid not in self.gids:
+                continue
             self.queue.extend(self.mails[gid])
             logT(f'开始向群: {gid} 的成员发送邮件')
             for mailType in accounts:
@@ -284,9 +289,9 @@ class MyGUI():
             if not self.status:
                 break
             logT(f'群{gid} 已全部发送')
-            # groupFile = os.path.join(
-            #     DATAPATH, 'groups', gid)
-            # os.remove(groupFile)
+            self.CHOOSEGROUPLIST.delete(0, 'end')
+            self.gids.remove(gid)
+            self.CHOOSEGROUPLIST.insert('end', *self.gids)
         if self.status:
             msg = f'发送完成, 邮件成功发送给{self.count}个人'
             logT(msg)
@@ -306,16 +311,21 @@ class MyGUI():
         self.status = True
         self.count = 0
         self.mail['subject'] = self.MAILSUBJ.get()
-        self.mail['content'] = self.MAILCON.get(0.0, END)
+        self.mail['content'] = self.MAILCON.get(0.0, 'end')
         accounts = self._readAccount()
         if not accounts:
             return
-        if accounts and self.mail['subject'] and self.mail['content']:
+        if accounts and self.mail['subject'] and self.mail['content'] and self.gids:
             self.TIP.configure(text='开始发送邮件, 请等待或者查看日志')
+            self.total = 0
+            for gid in self.gids:
+                self.total += (len(self.mails[gid])-1) * \
+                    10 + len(self.mails[gid][-1])
+            logT(f'开始发送邮件, 选择群号: {self.gids}, 共{self.total}人')
             td = Thread(target=self._senderManager, args=(accounts, self.mail))
             td.start()
         else:
-            msg = ('请完整填写邮件主题和正文', 'err')
+            msg = ('请选择要发送的群号并完整填写邮件主题和正文', 'err')
             logT(*msg)
             dialogMsg(*msg)
 
@@ -327,7 +337,7 @@ class MyGUI():
 
 
 def gui_start():
-    init_window = tkinter.Tk()
+    init_window = Tk()
     main_gui = MyGUI(init_window)
     main_gui.set_init_window()
     init_window.mainloop()

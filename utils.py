@@ -23,27 +23,8 @@ if not os.path.exists(DATAPATH):
 TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver并放入当前文件夹
 驱动下载地址在本程序左上角
 发送者的邮箱和授权码请以json格式放入当前文件夹
----account.json
-{
-    "qq": [
-        {
-            "email": "xxxxxxxx@qq.com",
-            "auth": "xxxxxxxxxxxx"
-        }
-    ],
-    "163": [
-        {
-            "email": "xxxxxxxx@163.com",
-            "auth": "xxxxxxxxxxxx"
-        }
-    ],
-    "126": [
-        {
-            "email": "xxxxxxxx@126.com",
-            "auth": "xxxxxxxxxxxx"
-        }
-    ],
-}
+发送邮件之前需要选择要发送的群号, 左侧列表可以使用ctrl+A全选
+点击>>按钮导入, 如果选择错误双击右侧的群号可以删除
 '''
 
 
