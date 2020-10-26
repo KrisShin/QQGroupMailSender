@@ -73,7 +73,7 @@ def crawlQQNum(group_ids):
         mails[gid] = _parseMails(driver)  # 保存本地数据
         save_txt(mails[gid], f'groups/{gid}')
         count -= 1
-        logT(f'群号:{gid} 已爬取完成并保存')
+        logT(f'群号:{gid} 已获取完成并保存')
         if not count:
             break
         randSleep(5, 10)
