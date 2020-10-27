@@ -25,7 +25,8 @@ class MyGUI():
     # 构造函数
     def __init__(self, window):
         self.mainWindow = window
-        self.gids = []
+        self.allGids = []
+        self.crawlGids = []
         self.subject = ''
         self.mail = {'subject': '', 'content': '',
                      'images': [], 'attach': None}
@@ -62,15 +63,16 @@ class MyGUI():
         self.GETGIDSBTN.grid(column=1, row=1)
 
         self.STARTCRAWLBTN = Button(self.mainWindow,
-                                    text='读取邮箱',
-                                    command=self.readMails)
-        self.STARTCRAWLBTN.grid(column=2, row=1)
-
-        self.STARTCRAWLBTN = Button(self.mainWindow,
-                                    text='开始爬取',
+                                    text='获取邮箱',
                                     state='disabled',
                                     command=self.getMails)
-        self.STARTCRAWLBTN.grid(column=3, row=1)
+        self.STARTCRAWLBTN.grid(column=2, row=1)
+
+        self.READMAILBTN = Button(self.mainWindow,
+                                  text='读取邮箱',
+                                  state='disabled',
+                                  command=self.readMails)
+        self.READMAILBTN.grid(column=3, row=1)
 
         Label(self.mainWindow, text="选择要发送邮件的群\n(右侧双击删除)",
               padx=10, justify='left').grid(column=0, row=2, sticky='e')
@@ -143,27 +145,33 @@ class MyGUI():
         self.TIP.grid(column=0, row=8, columnspan=4)
 
         col_count, row_count = self.mainWindow.grid_size()
-
         for col in range(col_count):
             if col in [1, 3]:
                 self.mainWindow.grid_columnconfigure(col, minsize=200)
-
         for row in range(row_count):
             self.mainWindow.grid_rowconfigure(row, minsize=35)
-
         dialogMsg(m='t')
+
+        if os.path.exists(os.path.join(DATAPATH, 'groups')) and os.listdir(os.path.join(DATAPATH, 'groups')):
+            self.READMAILBTN.configure(state='normal')
         logT('启动程序')
 
     def getGids(self):
         '''扫码获取所有群号'''
-        gids = crawlGroupIds()
-        if not gids:
-            dialogMsg('请确认驱动版本以及是否在本文件夹内', 'err')
-        else:
-            logT(f'获取群号成功: {gids}')
+        if os.path.exists(os.path.join(DATAPATH, 'gids')):
+            with open(os.path.join(DATAPATH, 'gids'), 'r') as fg:
+                self.allGids = json.loads(fg.read())
+            logT(f'获取群号成功: 群号{self.allGids}')
             dialogMsg('获取群号成功')
-            self.gids = gids
-            self.STARTCRAWLBTN.configure(state='normal')
+        else:
+            res = crawlGroupIds()
+            if not res:
+                dialogMsg('请确认驱动版本以及是否在本文件夹内', 'err')
+            else:
+                self.allGids = res
+                logT(f'获取群号成功: {res}')
+                dialogMsg('获取群号成功')
+                self.STARTCRAWLBTN.configure(state='normal')
 
     def readMails(self):
         try:
@@ -190,13 +198,17 @@ class MyGUI():
             dialogMsg('请先获取邮箱', 'err')
 
     def getMails(self):
-        res = crawlQQNum(self.gids)
-        if res:
-            self.mails = res
-            self._setWidgetState('normal')
-            self.ALLGROUPLIST.insert('end', res.keys())
-            dialogMsg('获取邮箱成功')
-        else:
+        if not self.allGids:
+            logT('没有群号', 'err')
+            dialogMsg('请先获取群号', 'err')
+        res = crawlQQNum(self.crawlGids)
+        if res == 1 or res == -1:
+            msg = '获取邮箱成功'
+            if res == -1:
+                msg = '此QQ号所有群已爬取完成'
+            logT(msg)
+            dialogMsg(msg)
+        elif res == 0:
             msg = ('获取邮箱失败, 请检查是否成功授权或浏览器和驱动版本是否匹配', 'err')
             logT(*msg)
             dialogMsg(*msg)
@@ -205,15 +217,15 @@ class MyGUI():
         idxs = self.ALLGROUPLIST.curselection()
         for idx in idxs:
             gid = self.ALLGROUPLIST.get(idx)
-            if gid not in self.gids:
-                self.gids.append(gid)
+            if gid not in self.crawlGids:
+                self.crawlGids.append(gid)
                 self.CHOOSEGROUPLIST.insert('end', gid)
 
     def deleteGroup(self, idx):
         gid = self.CHOOSEGROUPLIST.get('active')
         self.CHOOSEGROUPLIST.delete(0, 'end')
-        self.gids.remove(gid)
-        self.CHOOSEGROUPLIST.insert('end', *self.gids)
+        self.crawlGids.remove(gid)
+        self.CHOOSEGROUPLIST.insert('end', *self.crawlGids)
 
     def _setWidgetState(self, mode):
         self.ALLGROUPLIST.configure(state=mode)
@@ -290,7 +302,7 @@ class MyGUI():
         self._setWidgetState('disabled')
         tds = list()
         for gid in self.mails:
-            if gid not in self.gids:
+            if gid not in self.crawlGids:
                 continue
             self.queue.extend(self.mails[gid])
             logT(f'开始向群: {gid} 的成员发送邮件')
@@ -306,8 +318,8 @@ class MyGUI():
                 break
             logT(f'群{gid} 已全部发送')
             self.CHOOSEGROUPLIST.delete(0, 'end')
-            self.gids.remove(gid)
-            self.CHOOSEGROUPLIST.insert('end', *self.gids)
+            self.crawlGids.remove(gid)
+            self.CHOOSEGROUPLIST.insert('end', *self.crawlGids)
         if self.status:
             msg = f'发送完成, 邮件成功发送给{self.count}个人'
             logT(msg)
@@ -331,13 +343,13 @@ class MyGUI():
         accounts = self._readAccount()
         if not accounts:
             return
-        if accounts and self.mail['subject'] and self.mail['content'] and self.gids:
+        if accounts and self.mail['subject'] and self.mail['content'] and self.crawlGids:
             self.TIP.configure(text='开始发送邮件, 请等待或者查看日志')
             self.total = 0
-            for gid in self.gids:
+            for gid in self.crawlGids:
                 self.total += (len(self.mails[gid])-1) * \
                     10 + len(self.mails[gid][-1])
-            logT(f'开始发送邮件, 选择群号: {self.gids}, 共{self.total}人')
+            logT(f'开始发送邮件, 选择群号: {self.crawlGids}, 共{self.total}人')
             td = Thread(target=self._senderManager, args=(accounts, self.mail))
             td.start()
         else:

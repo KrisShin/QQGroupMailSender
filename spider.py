@@ -57,10 +57,9 @@ def crawlQQNum(group_ids):
     logT('开始获取所有QQ号')
     driver = _launchChromeDriver()
     if not driver:
-        return False
+        return 0
     count = randint(3, 4)
     logT(f'本次将爬取{count}个群')
-    mails = {}
     for gid in group_ids:
         groupDir = os.path.join(DATAPATH, 'groups')
         if os.path.exists(groupDir) and gid in os.listdir(groupDir):
@@ -70,16 +69,18 @@ def crawlQQNum(group_ids):
         driver.refresh()
         randSleep(10, 12)  # wating to scan
         _scroll2foot(driver)
-        mails[gid] = _parseMails(driver)  # 保存本地数据
-        save_txt(mails[gid], f'groups/{gid}')
+        mails = _parseMails(driver)  # 保存本地数据
+        save_txt(mails, f'groups/{gid}')
         count -= 1
         logT(f'群号:{gid} 已获取完成并保存')
         if not count:
             break
         randSleep(5, 10)
+    else:
+        return -1
     logT('获取QQ号完成')
     driver.quit()  # 关闭浏览器
-    return mails
+    return 1
 
 
 def crawlGroupIds():
