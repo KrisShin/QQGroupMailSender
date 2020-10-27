@@ -12,8 +12,10 @@ from threading import Thread, Lock, enumerate as eu
 from utils import logT, dialogMsg, json, DATAPATH
 
 N = 10  # 一次给10个人发送邮件
-WINDOW_WIDTH = 650
+WINDOW_WIDTH = 650  # 窗口大小
 WINDOW_HEIGHT = 430
+WINDOW_X = 0  # 窗口距中心点偏移值
+WINDOW_Y = 0
 
 
 class MyGUI():
@@ -37,8 +39,13 @@ class MyGUI():
     # 初始化窗口
     def set_init_window(self):
         self.mainWindow.title("Pow Mail Tool")  # 设置标题
+        posX = int((self.mainWindow.winfo_screenwidth() -
+                    WINDOW_WIDTH) / 2 + WINDOW_X)
+        posY = int((self.mainWindow.winfo_screenheight() -
+                    WINDOW_HEIGHT) / 2 + WINDOW_Y)
         self.mainWindow.geometry(
-            f'{WINDOW_WIDTH}x{WINDOW_HEIGHT}+100+50')  # 设置尺寸
+            f'{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{posX}+{posY}')  # 设置尺寸
+        self.mainWindow.resizable(0, 0)
         self.mainWindow.attributes('-alpha', 1)  # 属性？
 
         # 驱动下载地址
