@@ -12,8 +12,8 @@ from threading import Thread, Lock, enumerate as eu
 from utils import logT, dialogMsg, json, DATAPATH
 
 N = 10  # 一次给10个人发送邮件
-WINDOW_WIDTH = 650  # 窗口大小
-WINDOW_HEIGHT = 430
+WINDOW_WIDTH = 680  # 窗口大小
+WINDOW_HEIGHT = 470
 WINDOW_X = 0  # 窗口距中心点偏移值
 WINDOW_Y = 0
 
@@ -45,7 +45,7 @@ class MyGUI():
                     WINDOW_HEIGHT) / 2 + WINDOW_Y)
         self.mainWindow.geometry(
             f'{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{posX}+{posY}')  # 设置尺寸
-        self.mainWindow.resizable(0, 0)
+        self.mainWindow.resizable(0, 0)  # 禁止调整大小
         self.mainWindow.attributes('-alpha', 1)  # 属性？
 
         # 驱动下载地址
@@ -53,18 +53,18 @@ class MyGUI():
             column=0, row=0, sticky='e')
         a = StringVar()
         Entry(self.mainWindow, textvariable=a, width=50,
-              state='readonly').grid(row=0, column=1, columnspan=2, sticky='w')
+              state='readonly').grid(row=0, column=1, columnspan=3, sticky='w')
         a.set('https://npm.taobao.org/mirrors/chromedriver/')
 
         self.GETGIDSBTN = Button(self.mainWindow,
                                  text='获取群号',
                                  command=self.getGids)
-        self.GETGIDSBTN.grid(column=0, row=1, sticky='e')
+        self.GETGIDSBTN.grid(column=1, row=1)
 
         self.STARTCRAWLBTN = Button(self.mainWindow,
                                     text='读取邮箱',
                                     command=self.readMails)
-        self.STARTCRAWLBTN.grid(column=1, row=1, columnspan=2)
+        self.STARTCRAWLBTN.grid(column=2, row=1)
 
         self.STARTCRAWLBTN = Button(self.mainWindow,
                                     text='开始爬取',
@@ -73,16 +73,16 @@ class MyGUI():
         self.STARTCRAWLBTN.grid(column=3, row=1)
 
         Label(self.mainWindow, text="选择要发送邮件的群\n(右侧双击删除)",
-              padx=10).grid(column=0, row=2, sticky='e')
+              padx=10, justify='left').grid(column=0, row=2, sticky='e')
         self.ALLGROUPLIST = Listbox(
             self.mainWindow, height=5, selectmode='multiple', state='disabled')
-        self.ALLGROUPLIST.grid(column=1, row=2)
+        self.ALLGROUPLIST.grid(column=1, row=2, sticky='wsne')
         self.CHOOSEGROUPBTN = Button(
-            self.mainWindow, text='>>', state='disabled', width=10, command=self.chooseGroup)
+            self.mainWindow, text='>>', state='disabled', width=8, command=self.chooseGroup)
         self.CHOOSEGROUPBTN.grid(column=2, row=2)
         self.CHOOSEGROUPLIST = Listbox(
             self.mainWindow, height=5, state='disabled')
-        self.CHOOSEGROUPLIST.grid(column=3, row=2)
+        self.CHOOSEGROUPLIST.grid(column=3, row=2, sticky='wsne')
         self.CHOOSEGROUPLIST.bind(
             '<Double-Button-1>', self.deleteGroup)  # 双击删除gid
 
@@ -99,13 +99,13 @@ class MyGUI():
                                     width=65,
                                     height=10,
                                     state='disabled')
-        self.MAILCON.grid(column=1, row=4, columnspan=3)
+        self.MAILCON.grid(column=1, row=4, columnspan=3, sticky='w')
 
         Label(self.mainWindow, text="选择邮件图片:", padx=10).grid(column=0,
                                                              row=5,
                                                              sticky='e')
         self.MAILIMG = Label(self.mainWindow, text='')
-        self.MAILIMG.grid(column=1, row=5)
+        self.MAILIMG.grid(column=1, row=5, sticky='w')
         self.MAILIMGBTN = Button(self.mainWindow,
                                  text='点击选择',
                                  state='disabled',
@@ -122,7 +122,7 @@ class MyGUI():
                                                              row=6,
                                                              sticky='e')
         self.FILEPATH = Label(self.mainWindow, text='')
-        self.FILEPATH.grid(column=1, row=6)
+        self.FILEPATH.grid(column=1, row=6, sticky='w')
         self.MAILFILEBTN = Button(self.mainWindow,
                                   text='点击选择',
                                   state='disabled',
@@ -133,14 +133,23 @@ class MyGUI():
                               text='群发邮件',
                               state='disabled',
                               command=self.sendMails)
-        self.SENDBTN.grid(column=0, row=7)
+        self.SENDBTN.grid(column=1, row=7)
 
         self.PROGERSS = ttk.Progressbar(
             self.mainWindow, orient="horizontal", length=300, mode="determinate")
-        self.PROGERSS.grid(column=1, row=7, columnspan=3)
+        self.PROGERSS.grid(column=2, row=7, columnspan=2)
 
         self.TIP = Label(text='')
         self.TIP.grid(column=0, row=8, columnspan=4)
+
+        col_count, row_count = self.mainWindow.grid_size()
+
+        for col in range(col_count):
+            if col in [1, 3]:
+                self.mainWindow.grid_columnconfigure(col, minsize=200)
+
+        for row in range(row_count):
+            self.mainWindow.grid_rowconfigure(row, minsize=35)
 
         dialogMsg(m='t')
         logT('启动程序')
