@@ -1,13 +1,11 @@
 import time
-import os
-import re
 from math import ceil
 import platform
 
 from selenium import webdriver
 
-from utils import save_txt, logT, randSleep, randint, sleep, DATAPATH
-
+from QGMConf import os, re, randint, sleep, DATAPATH, CONFIGS
+from utils import saveGroup, logT, randSleep,  saveConfig
 
 DRIVERPATH = r'.\chromedriver.exe' if platform.system(
 ) == 'Windows' else r'./chromedriver'
@@ -17,6 +15,8 @@ def _parseMails(driver):
     html = driver.page_source  # 获取源码
     reg = re.compile(r'<td>\s*?([1-9]\d{4,11})\s*?</td>')
     qqs = re.findall(reg, html)
+    if not qqs:
+        return qqs
     n = ceil(len(qqs)/10)
     mails = []
     for i in range(n):
@@ -58,27 +58,36 @@ def crawlQQNum(group_ids):
     driver = _launchChromeDriver()
     if not driver:
         return 0
-    count = randint(3, 4)
+    count = randint(3, 5)
     logT(f'本次将爬取{count}个群')
+    CONFIGS['newCrawled'] = []
     for gid in group_ids:
-        groupDir = os.path.join(DATAPATH, 'groups')
-        if os.path.exists(groupDir) and gid in os.listdir(groupDir):
+        if gid in CONFIGS['crawledGids']:
             continue
         gurl = f'https://qun.qq.com/member.html#gid={gid}'
+        CONFIGS['crawlingGid'] = gid
+        saveConfig()
         driver.get(url=gurl)
         driver.refresh()
         randSleep(10, 12)  # wating to scan
-        _scroll2foot(driver)
+        # _scroll2foot(driver)
         mails = _parseMails(driver)  # 保存本地数据
-        save_txt(mails, f'groups/{gid}')
-        count -= 1
+        if not mails:
+            driver.quit()
+            return -2
+        saveGroup(mails, gid)
         logT(f'群号:{gid} 已获取完成并保存')
+        CONFIGS['crawlingGid'] = ''
+        CONFIGS['newCrawled'].append(gid)
+        CONFIGS['crawledGids'].append(gid)
+        saveConfig()
+        count -= 1
         if not count:
             break
         randSleep(5, 10)
     else:
+        driver.quit()
         return -1
-    logT('获取QQ号完成')
     driver.quit()  # 关闭浏览器
     return 1
 
@@ -88,13 +97,16 @@ def crawlGroupIds():
     url = f'https://qun.qq.com/member.html'
     driver = _launchChromeDriver()
     if not driver:
-        return False
+        return 0
     driver.get(url=url)
     time.sleep(12)  # 等待扫码登录成功
     group_ids = _parse_group(driver)
     driver.quit()
+    if not group_ids:
+        return -2
+    CONFIGS['gids'] = group_ids
     logT('获取群号完成')
-    return group_ids
+    return 1
 
 
 if __name__ == '__main__':

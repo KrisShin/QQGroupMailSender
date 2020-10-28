@@ -2,7 +2,8 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
-import os
+
+from QGMConf import os
 from utils import randSleep, logT, dialogMsg
 
 MAILTPS = {
@@ -74,16 +75,16 @@ def _compContent(email, receivers, mail):
 
 
 def sender(email, auth, mailType, receivers, mail):
-    server = _authLogin(email, auth, mailType)
-    if not server:
-        return 0
+    # server = _authLogin(email, auth, mailType)
+    # if not server:
+    #     return 0
 
     msg = _compContent(email, receivers, mail)
 
     # 发送邮件
     try:
-        server.sendmail(email, receivers, msg.as_string())
-        server.quit()
+        # server.sendmail(email, receivers, msg.as_string())
+        # server.quit()
         randSleep(4, 6)
         return len(receivers)
     except smtplib.SMTPException as e:

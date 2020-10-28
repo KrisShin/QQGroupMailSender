@@ -1,38 +1,17 @@
-import logging
-from time import sleep
-from random import random, randint
-from tkinter import messagebox
-import json
-import os
-
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
-handler = logging.FileHandler("QGM.log", encoding='utf-8')
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-DATAPATH = os.path.join(os.environ['APPDATA'], 'misc', 'QGM')
-# DATAPATH = '.'
-
-if not os.path.exists(DATAPATH):
-    os.makedirs(DATAPATH, 777)
-
-TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver并放入当前文件夹
-驱动下载地址在本程序左上角
-发送者的邮箱和授权码请以json格式放入当前文件夹
-发送邮件之前需要选择要发送的群号, 左侧列表可以使用ctrl+A全选
-点击>>按钮导入, 如果选择错误双击右侧的群号可以删除
-'''
+from QGMConf import GROUPPATH, CONFPATH, json, CONFIGS, os, messagebox, TUTORIAL, sleep, logger, random
 
 
-def save_txt(data, filePath, mode='w'):
-    path = os.path.join(DATAPATH, filePath)
-    dirc = os.path.split(path)[0]
-    if not os.path.exists(dirc):
-        os.makedirs(dirc, 777)
+def saveConfig():
+    '''保存配置文件'''
+    with open(CONFPATH, 'w') as fc:
+        fc.write(json.dumps(CONFIGS))
+
+
+def saveGroup(data, filename, mode='w'):
+    '''保存爬取的群号'''
+    path = os.path.join(GROUPPATH, filename)
+    if not os.path.exists(GROUPPATH):
+        os.makedirs(GROUPPATH, 777)
     if not isinstance(data, str):
         data = json.dumps(data)
     with open(path, mode) as fs:
@@ -41,6 +20,7 @@ def save_txt(data, filePath, mode='w'):
 
 
 def dialogMsg(msg='', m='info'):
+    '''弹窗提示'''
     if m == 'warn':
         messagebox.showwarning('警告', msg)
     elif m == 'err':

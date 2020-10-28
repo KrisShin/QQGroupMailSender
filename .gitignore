@@ -8,3 +8,4 @@ groups/*
 account.json
 **dist
 **chromedriver**
+**localConf

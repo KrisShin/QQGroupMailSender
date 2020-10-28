@@ -2,17 +2,36 @@
 
 ## 使用教程
 
+```mermaid
+    graph TB
+    first{第一次启动} -- 是 --> dialog[教程及更新弹窗]
+    first -- 否 --> main{主程序}
+    dialog --> main
+    main -- 获取新群邮箱 --> getGids[获取群号]
+    getGids --> getMails[获取邮箱]
+    getMails -- 加入新获取的群号到待发送列表 --> readMails
+    main -- 发送已获取的群 --> readMails[读取邮箱]
+    readMails --> chooseGid[选择要发送的群]
+    chooseGid --> content[填写主题和内容]
+    content --> send[发送邮件]
+    content --> chooseFile[选择图片/附件]
+    chooseFile --> send
+```
+
 ![alt 操作指南](./tutorail.png)
 
 ## 更新日志
 
+- 10.28
+  > 增加本地缓存
+  > 优化程序逻辑, 提高易用性
+- 10.27
+  > 固定窗口大小
+  > 固定窗口位置到屏幕正中
 - 10.26
   > 增加群号列表可选择
   > 增加显示发送邮件进度条
   > 提高程序易用性
-- 10.27
-  > 固定窗口大小
-  > 固定窗口位置到屏幕正中
 
 ## 特性简介
 
