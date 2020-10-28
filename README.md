@@ -2,22 +2,6 @@
 
 ## 使用教程
 
-```mermaid
-    graph TB
-    first{第一次启动} -- 是 --> dialog[教程及更新弹窗]
-    first -- 否 --> main{主程序}
-    dialog --> main
-    main -- 获取新群邮箱 --> getGids[获取群号]
-    getGids --> getMails[获取邮箱]
-    getMails -- 加入新获取的群号到待发送列表 --> readMails
-    main -- 发送已获取的群 --> readMails[读取邮箱]
-    readMails --> chooseGid[选择要发送的群]
-    chooseGid --> content[填写主题和内容]
-    content --> send[发送邮件]
-    content --> chooseFile[选择图片/附件]
-    chooseFile --> send
-```
-
 ![alt 操作指南](./tutorail.png)
 
 ## 更新日志
@@ -88,12 +72,25 @@
 - [x] 6、发送完成之后显示发送成功提醒语，若发送失败或者错误，也请提示。
 
   - [x] 目前有提示(更改为弹窗+log的形式)
-  - 部分流程暂未添加log和弹窗
+  - [x] 部分流程暂未添加log和弹窗
 
 - [x] 7、至少能保证连续运行至发送完当天获取的所有邮箱
 
-  - 要求20w/day
+  - 要求20w/day(账号足够多可达成)
 
 - [x] 8、提供发送其他类型邮箱的接口比如163，126等，我这边儿提供比如163邮箱的txt等文本文件(支持json格式)
   - [x] 支持163邮箱发送
   - [x] 支持126邮箱发送
+
+```mermaid
+    graph TB
+    main{{主程序}} -- 获取新群邮箱 --> getGids[获取群号]
+    getGids --> getMails[获取邮箱]
+    getMails -- 加入新获取的群号 --> readMails
+    main -- 发送已获取的群 --> readMails[读取邮箱]
+    readMails --> chooseGid[选择要发送的群]
+    chooseGid --> content{{填写主题和内容}}
+    content --> send[发送邮件]
+    content --> chooseFile[选择图片/附件]
+    chooseFile --> send
+```
