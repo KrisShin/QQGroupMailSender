@@ -70,7 +70,7 @@ def crawlQQNum(group_ids):
         driver.get(url=gurl)
         driver.refresh()
         randSleep(10, 12)  # wating to scan
-        # _scroll2foot(driver)
+        _scroll2foot(driver)
         mails = _parseMails(driver)  # 保存本地数据
         if not mails:
             driver.quit()
