@@ -32,7 +32,7 @@ def _withImg(imgsPath, msg):
         with open(imgPath, "rb") as fi:
             img_data = fi.read()
             img = MIMEImage(img_data)
-            img.add_header('Content-ID', f'imageid{i}')
+            img.add_header('Content-ID', f'imageid_{i}')
             msg.attach(img)
     return msg
 
@@ -54,16 +54,18 @@ def _withFile(filePath, msg):
 
 
 def _compContent(email, receivers, mail):
-    message = MIMEMultipart('related')
+    message = MIMEMultipart()
     message['Subject'] = mail['subject']
     message['From'] = email
     message['To'] = ','.join(receivers)
     text = mail['content']
-    imgContent = ''
+    imgContent, link = '',''
     for i in range(len(mail['images'])):
-        imgContent += f'<div><a href="www.bing.com"><img src="cid:imageid" alt="imageid{i}"></a></div>'
+        imgContent += f'<div><a href="www.bing.com"><img src="cid:imageid_{i}" /></a></div>'
+    if mail['link']:
+        link = '<a href="{}" >{}</a>'.format(mail['link'], mail['link'])
     content = MIMEText(
-        f'<html><body><pre>{text}</pre>{imgContent}</body></html>',
+        f'<html><body><pre>{text}</pre>{link}{imgContent}</body></html>',
         'html', 'utf-8')
     message.attach(content)
 
@@ -94,6 +96,12 @@ def sender(email, auth, mailType, receivers, mail):
 
 
 if __name__ == '__main__':
-    # sender('767710688@qq.com', 'ojosjwekknupbbha', 'test mail',
-    #        ['2855829886@qq.com'], 'hello world\naaaaa\nwori')
+    # ojosjwekknupbbha 767710688@qq.com
+    # slkgzjxcalcidded 2855829886@qq.com
+    sender('2855829886@qq.com', 'slkgzjxcalcidded', 'qq',
+           ['767710688@qq.com'],
+           {'subject': 'hello', 'content': 'ahahaha',
+            'images': [ r'D:\Projects\pycode\QQGroupMail\tutorail.png', r'D:\Projects\pycode\QQGroupMail\tutorail.png'], 
+            'attach': r'D:\Projects\pycode\QQGroupMail\tutorail.png', 
+            'link': 'www.bing.com'})
     pass

@@ -13,7 +13,7 @@ WINDOW_HEIGHT = 470
 WINDOW_X = 0  # 窗口距中心点偏移值
 WINDOW_Y = 0
 NUMBER = 5  # 一封邮件发送的人数
-UPDATE_DATE = '2020-10-28'
+UPDATE_DATE = '2020-10-30'
 DATAPATH = os.path.join(os.environ['APPDATA'], 'QGM')
 # DATAPATH = '.'
 GROUPPATH = os.path.join(DATAPATH, 'groups')
@@ -36,8 +36,11 @@ TUTORIAL = '''请提前安装chrome浏览器并下载对应版本的chromedriver
 发送者的邮箱和授权码请以json格式放入当前文件夹
 发送邮件之前需要选择要发送的群号, 左侧列表可以使用ctrl+A全选
 点击>>按钮导入, 如果选择错误双击右侧的群号可以删除
-- 10.28
-  > 增加本地缓存
+- 10.30
+  > 增加清空缓存
+  > 修复发送图片变成附件问题
+  > 增加群号列表, 可自由选择要发送的群
+  > 邮件正文图片添加超链接
   > 优化程序逻辑, 提高易用性
 '''
 
