@@ -61,7 +61,7 @@ def _compContent(email, receivers, mail):
     text = mail['content']
     imgContent = ''
     for i in range(len(mail['images'])):
-        imgContent += f'<div><img src="cid:imageid" alt="imageid{i}"></div>'
+        imgContent += f'<div><a href="www.bing.com"><img src="cid:imageid" alt="imageid{i}"></a></div>'
     content = MIMEText(
         f'<html><body><pre>{text}</pre>{imgContent}</body></html>',
         'html', 'utf-8')
@@ -85,7 +85,7 @@ def sender(email, auth, mailType, receivers, mail):
     try:
         server.sendmail(email, receivers, msg.as_string())
         server.quit()
-        randSleep(4, 6)
+        randSleep(3, 6)
         return len(receivers)
     except smtplib.SMTPException as e:
         logT(f'{email} 发送邮件失败, 原因请查看日志'+e, 'err')

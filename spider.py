@@ -4,7 +4,7 @@ import platform
 
 from selenium import webdriver
 
-from QGMConf import os, re, randint, sleep, DATAPATH, CONFIGS
+from QGMConf import os, re, randint, sleep, DATAPATH, CONFIGS, NUMBER
 from utils import saveGroup, logT, randSleep,  saveConfig
 
 DRIVERPATH = r'.\chromedriver.exe' if platform.system(
@@ -17,7 +17,7 @@ def _parseMails(driver):
     qqs = re.findall(reg, html)
     if not qqs:
         return qqs
-    n = ceil(len(qqs)/10)
+    n = ceil(len(qqs)/NUMBER)
     mails = []
     for i in range(n):
         mails.append([f'{qq}@qq.com' for qq in qqs[i*10:(i+1)*10]])

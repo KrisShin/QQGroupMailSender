@@ -5,17 +5,19 @@ from tkinter import messagebox
 import json
 import os
 import re
+import shutil
 
 
 WINDOW_WIDTH = 680  # 窗口大小
 WINDOW_HEIGHT = 470
 WINDOW_X = 0  # 窗口距中心点偏移值
 WINDOW_Y = 0
+NUMBER = 5  # 一封邮件发送的人数
 UPDATE_DATE = '2020-10-28'
 DATAPATH = os.path.join(os.environ['APPDATA'], 'QGM')
 # DATAPATH = '.'
 GROUPPATH = os.path.join(DATAPATH, 'groups')
-CONFPATH = os.path.join(DATAPATH, 'localConf')
+CONFPATH = os.path.join(DATAPATH, 'localconf')
 
 CONFIGS = {
     'gids': [],

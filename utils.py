@@ -1,4 +1,20 @@
-from QGMConf import GROUPPATH, CONFPATH, json, CONFIGS, os, messagebox, TUTORIAL, sleep, logger, random
+from QGMConf import GROUPPATH, CONFPATH, json, CONFIGS, os, messagebox, TUTORIAL, sleep, logger, random, shutil
+
+
+def cleanCache():
+    '''清空groups文件夹并初始化CONFIGS'''
+    shutil.rmtree(GROUPPATH, ignore_errors=True)
+    os.makedirs(GROUPPATH)
+    CONFIGS.update({
+        'gids': [],
+        'new': False,
+        'crawlingGid': '',
+        'newCrawled': [],
+        'crawledGids': [],
+        'sendingGid': '',
+        'sendGids': []
+    })
+    saveConfig()
 
 
 def saveConfig():
